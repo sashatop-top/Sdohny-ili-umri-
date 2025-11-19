@@ -1,8 +1,5 @@
 from abc import ABC, abstractmethod
-from random import uniform, random, randint
-
-
-
+from random import uniform, randint, choise
 
 # if __name__ == "__main__":
 #     start()
@@ -10,7 +7,48 @@ from random import uniform, random, randint
 
 
 
-# def start(n:int, m:int, player_lvl:int)-> tuple["Board","Player"]:
+def start(n:int, m:int, player_lvl:int)-> tuple["Board","Player"]:
+    desk = [[()]]
+    weapons = [Revolver,Stick,Bow]
+    bonuses = [Medkit,Arrows,Rage,Bullets,Accuracy,Coins]
+    enemies = [Skeleton,Rat,Spider]
+    p_tower = 0.01
+    p_weapon = 0.05
+    p_enemy = 0.15
+    p_bonus = 0.3
+    for i in range(n):
+        for y in range(m):
+            if i == 0 and y == 0:
+                return(None,True)
+            elif i==n-1 and y==m-1:
+                return (None,True)
+            else:
+                tow = [0 if k > int(n*m*p_tower) else 1 for k in range(n*m)]
+                rand_tow = choise(tow)
+                if rand_tow == 1:
+                    desk[[i][y]] = (Tower,False)
+                else:
+                    bon = [0 if k > int(n*m*p_bonus) else 1 for k in range(n*m)]
+                    rand_bon = choise(bon)
+                    if rand_bon == 1:
+                        desk[[i][y]] = (choise(bonuses), False)
+                       
+                    else:
+                        ene = [0 if k > int(n*m*p_enemy) else 1 for k in range(n*m)]
+                        rand_ene = choise(ene)
+                        if rand_ene == 1:
+                            desk[[i][y]] = (choise(enemies), False)
+                            
+                        else:
+                            wea = [0 if k > int(n*m*p_weapon) else 1 for k in range(n*m)]
+                            rand_wea = choise(wea)
+                            if rand_wea == 1:
+                                desk[[i][y]] = (choise(weapons), False)
+                                
+                            else:
+                                return (None,False)
+
+    return Board(n,m,desk,(0,0),(n-1,m-1)) and Player(player_lvl, Fist, {}, {})
 
 class Board():
     def __init__(self, rows:int,cols:int,grid: list[list[tuple["Entity"| None, bool]]],start: tuple[int,int],goal:tuple[int,int]) -> None:
@@ -20,18 +58,40 @@ class Board():
         self.start = start
         self.goal = goal
 
-    def place(self,entity:Entity, pos: tuple[int,int]) -> None:
-        self.grid[[pos]] = self.entity
+    def place(self,entity:"Entity", pos: tuple[int,int]) -> None:
+        coors = self.grid[[pos[0]][pos[1]]]
+        coors = (entity, coors[1])
         
-    def entity_at(self, pos: tuple[int, int]) -> Entity | None:
-        return self.grid[[pos]]
+    def entity_at(self, pos: tuple[int, int]) -> "Entity" | None:
+        return self.grid[[pos[0]][pos[1]]]
     
-    def in_bounds(self, pos: tuple[int, int]) -> bool
-        
-
-
-
-
+    def in_bounds(self, pos: tuple[int, int]) -> bool:
+        if pos[0] < self.rows and pos[1] < self.cols:
+            return True
+        else:
+            return False
+    def render(self, player: "Player") -> str:
+        for i in range(self.rows):
+            for y in range(self.cols):
+                coors = self.grid[[i][y]]
+                if coors[1] == True:
+                    if coors == Enemy:
+                        return "|E|"
+                    elif coors == Bonus:
+                        return "|B|"
+                    elif coors == Weapon:
+                        return "|W|"
+                    elif coors == Tower:
+                        return "|T|"
+                    else:
+                        return "| |"
+                else:
+                    return "|X|"
+            return "\n"
+                
+def game(board: Board, player: "Player") -> None:
+    pass
+    
 
 class Entity(ABC):
     def __init__(self,position: tuple[int, int]) -> None:
@@ -69,17 +129,52 @@ class Attacker(ABC):
     def attack(self, target: Damageable) -> float:
         pass
         
-# class Player(Entity,Damageable,Attacker):
-#     def __init__(self,lvl:int,weapon:Weapon,inventory: dict[str,int], statuses: dict[str,int], rage:float = 1.0, accuracy:float=1.0,) -> None:
-#         self.lvl = lvl
-#         self.weapon = weapon
-#         self.inventory = inventory
-#         self.statuses = statuses
-#         self.rage = rage
-#         self.accuracy = accuracy
+class Player(Entity,Damageable,Attacker):
+    def __init__(self,lvl:int,weapon:"Weapon",inventory: dict[str,int], statuses: dict[str,int], rage:float = 1.0, accuracy:float=1.0, fight: bool = False) -> None:
+        self.lvl = lvl
+        self.weapon = weapon
+        self.inventory = inventory
+        self.statuses = statuses
+        self.rage = rage
+        self.accuracy = accuracy
     
-#     def move(self,d_row:int, d_col:int) -> None:
+    def move(self,d_row:int, d_col:int) -> None:
+        pass
+
+    def attack(self, target: Damageable) -> float:
+        amount = self.weapon.damage(self.rage)
+        return target.take_damage(amount)
+    
+    def choose_weapon(self,new_weapon: "Weapon") -> None:
+        pass
+
+    def apply_status_tick(self) -> float:
+        amount = 0
+        for key in self.statuses:
+            if key == "Infection":
+                amount = amount + 5*(1+self.lvl/10)
+            if key == "Poison":
+                amount = amount + 15*(1+self.lvl/10)
         
+        return self.hp.take_damage(amount)
+    
+    def add_coins(self, amount: int) -> None:
+        self.inventory["Coins"] += amount
+
+    def use_bonus(self, bonus: "Bonus") -> None:
+        bonus.apply(self)
+    
+    def buy_auto_if_needed(self, bonus: str) -> "Bonus":
+        pass
+
+    def symbol(self) -> str:
+        return "P"
+    
+    def change_fight(self) -> None:
+        if self.change_fight == True:
+            self.change_fight = False
+        else:
+            self.change_fight = True
 
 class Bonus(ABC, Entity):
 
