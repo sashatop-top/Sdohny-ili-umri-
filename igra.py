@@ -1,22 +1,33 @@
 from abc import ABC, abstractmethod
-from random import uniform
+from random import uniform, random, randint
+
+
+
+
+# if __name__ == "__main__":
+#     start()
+#     game()
 
 
 
 # def start(n:int, m:int, player_lvl:int)-> tuple["Board","Player"]:
 
-# class Board():
-#     def __init__(self, rows:int,cols:int,grid: list[list[tuple[]]],start: tuple[int,int],goal:tuple[int,int]) -> None:
-#         self.rows = rows
-#         self.cols = cols
-#         self.grid = grid
-#         self.start = start
-#         self.goal = goal
+class Board():
+    def __init__(self, rows:int,cols:int,grid: list[list[tuple["Entity"| None, bool]]],start: tuple[int,int],goal:tuple[int,int]) -> None:
+        self.rows = rows
+        self.cols = cols
+        self.grid = grid
+        self.start = start
+        self.goal = goal
 
-#         def place(self,entity:Entity, pos: tuple[int,int]) -> None:
-
-
-
+    def place(self,entity:Entity, pos: tuple[int,int]) -> None:
+        self.grid[[pos]] = self.entity
+        
+    def entity_at(self, pos: tuple[int, int]) -> Entity | None:
+        return self.grid[[pos]]
+    
+    def in_bounds(self, pos: tuple[int, int]) -> bool
+        
 
 
 
@@ -294,9 +305,87 @@ class Coins(Bonus):
              player.inventory["Coins"] = self.amount
 
 
+class Structure(ABC, Entity):
+    @abstractmethod
+    def interact(self, player: 'Player') -> None:
+        pass
 
+class Tower(Structure):
+    def __init(self):
+        self.reveal_radius: int = 2
+  #  def interact(self, board: "Board") -> None):
 
+class Enemy(ABC, Entity, Damageable, Attacker):
+    def __init__( self, lvl:int, max_enemy_damage:float,reward_coins: int)-> None:
+        self.lvl = lvl
+        self.max_enemy_damage = max_enemy_damage
+        self.reward_coins = reward_coins
 
+    @abstractmethod
+    def before_turn(self, player: 'Player') -> None:
+        pass
+    def roll_enemy_damage(self) -> float:
+        return uniform(0,self.max_enemy_damage)
+    
+
+class Rat(Enemy):
+    def __init__(self):
+        self.infection_chance: float = 0.25
+        self.flee_chance_low_hp: float = 0.10
+        self.flee_threshold: float = 0.15 #доля HP, при которой возможен побег.
+        self.infection_damage_base: float = 5.0
+        self.infection_turns: int = 3
+        self.reward_coins: int = 200
+    
+    def before_turn(self, player: "Player") -> None:
+        a = randint(1,1/self.flee_threshold)
+        if a == 1:
+            if self.hp == 0.15 * 100 * (1 + self.lvl / 10):
+                #крыса убегает
+                pass
+        else:
+            pass
+        b = randint(1,1/self.infection_chance)
+        if b == 1:
+            #крыса должна дополнительно в начале снимать
+            if "infection" in player.statusses:
+                player.statusses["infection"] += self.turns
+            else: 
+                player.statusses["infection"] = self.turns
+
+    def attack(self, target: Damageable) -> float:
+        target.take_damage(0,15 * (1 + self.lvl / 10)))
+        return uniform(0,15 * (1 + self.lvl / 10))
+    
+class Spider(Enemy):
+    poison_chance: float = 0.10
+    summon_chance_low_hp: float = 0.10
+    poison_damage_base: float = 15.0
+    poison_turns: int = 2
+    reward_coins: int = 250
+
+    def before_turn(self, player: "Player") -> None:
+        pass
+    def attack(self, target: Damageable) -> float:
+        target.take_damage(uniform(0,20 * (1 + self.lvl / 10)))
+        return uniform(0,20 * (1 + self.lvl / 10))
+
+class Skeleton(Enemy):
+    def __init__(self,weapon:Weapon):
+        self.reward_coins: int = 150
+
+    def before_turn(self, player: "Player") -> None:
+        pass
+
+    def attack(self, target: Damageable) -> float:
+            target.damage(self.weapon.damage())
+            return self.weapon.damage()
+  
+    def drop_loot(self, player: "Player") -> Weapon | None:
+        if isinstance(self.weapon, Fist):
+            pass
+        else:
+            #опустить оружие
 
         
 
