@@ -1,51 +1,6 @@
 from abc import ABC, abstractmethod
 from random import uniform, randint, choice,random
    
-
-# def start(n:int, m:int, player_lvl:int)-> tuple["Board","Player"]:
-#     desk = [[()]]
-#     revolver = Revolver()
-#     weapons = [Revolver,Stick,Bow]
-#     bonuses = [Medkit,Arrows,Rage,Bullets,Accuracy,Coins]
-#     enemies = [Skeleton(randint(1,10),10 * (1 + Skeleton.lvl / 10), 150, choice(weapons)),Rat(randint(1,10), 15 * (1 + Rat.lvl / 10) ,200), Spider(randint(1,10),20 * (1 + Spider.lvl / 10),250)]
-#     p_tower = 0.01
-#     p_weapon = 0.05
-#     p_enemy = 0.15
-#     p_bonus = 0.3
-#     for i in range(n):
-#         for y in range(m):
-#             if i == 0 and y == 0:
-#                 return(None,True)
-#             elif i==n-1 and y==m-1:
-#                 return (None,True)
-#             else:
-#                 tow = [0 if k > int(n*m*p_tower) else 1 for k in range(n*m)]
-#                 rand_tow = choice(tow)
-#                 if rand_tow == 1:
-#                     desk[[i][y]] = (Tower,False)
-#                 else:
-#                     bon = [0 if k > int(n*m*p_bonus) else 1 for k in range(n*m)]
-#                     rand_bon = choice(bon)
-#                     if rand_bon == 1:
-#                         desk[[i][y]] = (choice(bonuses), False)
-                       
-#                     else:
-#                         ene = [0 if k > int(n*m*p_enemy) else 1 for k in range(n*m)]
-#                         rand_ene = choice(ene)
-#                         if rand_ene == 1:
-#                             desk[[i][y]] = (choice(enemies), False)
-                            
-#                         else:
-#                             wea = [0 if k > int(n*m*p_weapon) else 1 for k in range(n*m)]
-#                             rand_wea = choice(wea)
-#                             if rand_wea == 1:
-#                                 desk[[i][y]] = (choice(weapons), False)
-                                
-#                             else:
-#                                 return (None,False)
-
-#     return Board(n,m,desk,(0,0),(n-1,m-1)) and Player(player_lvl, Fist, {}, {})
-
 class Entity(ABC):
     def __init__(self,position: tuple[int, int] = (0,0)) -> None:
         self.position = position
@@ -80,13 +35,13 @@ class Board():
         for i in range(self.rows):
             for y in range(self.cols):
                 coors = self.grid[i][y]
-                if (i,y) == player.position and coors[0] == Enemy:
+                if (i,y) == player.position and isinstance(coors[0], Enemy):
                     print(f'|{player.symbol()},E|', end = "")
-                elif (i,y) == player.position and coors[0] == Bonus:
+                elif (i,y) == player.position and isinstance(coors[0], Bonus):
                     print(f'|{player.symbol()},B|', end = "")
-                elif (i,y) == player.position and coors[0] == Weapon:
+                elif (i,y) == player.position and isinstance(coors[0], Weapon):
                     print(f'|{player.symbol()},W|', end = "")
-                elif (i,y) == player.position and coors[0] == Tower:
+                elif (i,y) == player.position and isinstance(coors[0], Tower):
                     print(f'|{player.symbol()},T|', end = "")
                 elif (i,y) == player.position and coors[0] == None:
                     print(f'|{player.symbol()}|', end = " ")
@@ -105,71 +60,12 @@ class Board():
                     else:
                         print("|X|",end =' ')
             print("\n")
-                
-# def game(board: Board, player: "Player") -> None:
-#     print('Добро пожаловать в игру "Сдохни или умри!"\n Команды: w-вперед \n a - налево \n d - направо \n s - назад \n f - атака')
-#     i=0
-#     y=0
-#     while player.position != board.goal:
-#         command = input()
-#         coors = board.grid[i][y]
-
-#         if command == "w" and board.in_bounds(i+1,y):
-#             player.move(i+1,y)
-#             print("Вы пошли вперед!")
-#         elif command == "a" and board.in_bounds(i,y+1):
-#             player.move(i,y+1)
-#             print("Вы пошли налево!")
-#         elif command == "d" and y>0 and board.in_bounds(i,y-1):
-#             player.move(i,y-1)
-#             print("Вы пошли направо!")
-#         elif command == "s" and i>0 and board.in_bounds(i-1,y):
-#             player.move(i-1,y)
-#             print("Вы пошли назад!")
-        
-#         elif isinstance(coors[0], Tower):
-#             print("\033[1;33;40m Tower!\n")
-#             coors[0].interact(board)
-        
-#         elif isinstance(coors[0], Bonus):
-#             print(f"\033[1;32;40m{coors[0]}\n")
-#             coors[0].apply(player)
-        
-#         elif isinstance(coors[0], Enemy):
-#             print(f"\033[1;31;40m{coors[0]}\n")
-#             player.fight = True
-#             while player.is_alive() and coors[0].is_alive():
-#                 command = input()
-#                 print(f"\033[1;31;40m {coors[0].before_turn(player)}\n")
-#                 print(f"\033[1;31;40m {coors[0].attack(player)}\n")
-#                 if command == 'f':
-#                     print(f"\033[1;32;40m {player.attack(coors[0])}\n")
-#                 if command == "b":
-#                     n = 1
-#                     for key in player.inventory:
-#                        print(f" {n}- {key} - {player.inventory[key]}", end = "")
-#                        print("Введите номер бонуса")
-#                        n+=1
-#                     n = 1
-#                     m = int(input())
-#                     if m <= len(player.inventory):
-#                         for key in player.inventory:
-#                             if n!=m:
-#                                 pass
-#                             else:
-#                                 player.inventory.apply(player)
-#                             n+=1
-
-# if __name__ == "__main__":
-#     start(10,5,randint(1,10))
-#     game()
-
-
 
 class Damageable(ABC):
     def __init__(self, hp: float, max_hp: float) -> None:
         self.hp = hp
         self.max_hp = max_hp
+        super().__init__()
     
     def is_alive(self) -> bool:
         if self.hp > 0:
@@ -201,9 +97,11 @@ class Player(Entity,Damageable,Attacker):
         self.statuses = statuses
         self.rage = rage
         self.accuracy = accuracy
+        self.fight = fight
         super().__init__()
-     
-
+        Damageable.__init__(self, Damageable.hp, Damageable.max_hp)
+       
+        
     
     def move(self,d_row:int, d_col:int) -> None:
         self.position = (d_row, d_col)
@@ -318,6 +216,9 @@ class Fist(MeleeWeapon):
     def __init__(self) -> None:
         self.name:str = "Кулак"
         self.max_damage:float = 20
+    
+    def __str__(self):
+        return self.name
 
     def is_available(self) -> bool:
         pass
@@ -336,6 +237,9 @@ class Stick(MeleeWeapon):
         self.name:str = "Палка"
         self.max_damage:float = 25
         self.durability:int = uniform(10,20)
+    
+    def __str__(self):
+        return self.name
     
     def is_available(self) -> bool:
         if self.durability > 0:
@@ -358,6 +262,9 @@ class Bow(RangedWeapon):
         self.name:str = "Лук"
         self.max_damage:float = 35
         self.ammo:int = uniform(10,15)
+    
+    def __str__(self):
+        return self.name
 
     def is_available(self) -> bool:
         if self.ammo > 0:
@@ -385,6 +292,9 @@ class Revolver(RangedWeapon):
         self.max_damage:float = 45
         self.ammo:int = uniform(5,10)
     
+    def __str__(self):
+        return self.name
+    
     def is_available(self) -> bool:
         if self.ammo > 0:
             return True
@@ -408,81 +318,99 @@ class Medkit(Bonus):
     def __init__(self):
         self.power = uniform(10,40)
     
+    def __str__(self) -> None:
+        return "Medkit"
+    
     def apply(self, player: 'Player') -> None:
         if player.fight == True:
             player.hell(self.power) 
         else:
-            if "Medkit" in player.inventory:
-                player.invetory["Medkit"] += 1
+            if self.__str__() in player.inventory:
+                player.inventory[self.__str__()] += 1
             else:
-                player.invetory["Medkit"] = 1
+                player.inventory[self.__str__()] = 1
 
 class Rage(Bonus):
     def __init__(self):
         self.multiplier = uniform(0.1,1.0)
+    
+    def __str__(self) -> None:
+        return "Rage"
 
     def apply(self, player: 'Player') -> None:
         if player.fight == True:
+            old_rage = player.rage #после боя вернуть обратно
             player.rage += self.multiplier
-        #после боя вернуть обратно 
         else:
-            if "Rage" in player.inventory:
-                player.invetory["Rage"] += 1
+            if self.__str__() in player.inventory:
+                player.inventory[self.__str__()] += 1
             else:
-                player.invetory["Rage"] = 1
+                player.inventory[self.__str__()] = 1
 
 
 class Arrows(Bonus): # нельзя купить
     def __init__(self):
         self.amount = uniform(1,20)
 
+    def __str__(self) -> None:
+        return "Arrows"
+    
     def apply(self, player: 'Player') -> None:
         if isinstance(player.weapon,Bow):
             player.inventory["BowAmmo"] += self.amount
         else:
-            if "Arrows" in player.inventory:
-                player.invetory["Arrows"] += 1
+            if self.__str__() in player.inventory:
+                player.inventory[self.__str__()] += 1
             else:
-                player.invetory["Arrows"] = 1
+                player.inventory[self.__str__()] = 1
 
 class Bullets(Bonus):
     def __init__(self) -> None:
         self.amount = uniform(1,10)
 
+    def __str__(self) -> None:
+        return "Bullets"
+    
     def apply(self, player: 'Player') -> None:
         if isinstance(player.weapon,Revolver):
             player.inventory["RevAmmo"] += self.amount
         else:
-            if "Bullets" in player.inventory:
-                player.invetory["Bullets"] += 1
+            if  self.__str__() in player.inventory:
+                player.inventory[self.__str__()] += 1
             else:
-                player.invetory["Bullets"] = 1
+                player.inventory[self.__str__()] = 1
 
 class Accuracy(Bonus):
     def __init__(self):
         self.multiplier = uniform(0.1,1.0)
         self.price:int = 50
 
+    def __str__(self) -> None:
+        return "Accuracy"
+
     def apply(self, player: 'Player') -> None:
-        #if in boi:
-        player.accuracy += self.multiplier
+        if player.fight == True:
+            player.accuracy += self.multiplier
         #после боя вернуть обратно 
-        #else
-        if "Accuracy" in player.inventory:
-            player.invetory["Accuracy"] += 1
         else:
-            player.invetory["Accuracy"] = 1
+            if  self.__str__()  in player.inventory:
+                player.inventory[self.__str__()] += 1
+            else:
+                player.inventory[self.__str__()] = 1
 
 
 class Coins(Bonus):
     def __init__(self):
-        self.amount = uniform(50,100)
+        self.amount = randint(50,100)
+    
+    def __str__(self) -> None:
+        return "Coins"
 
     def apply(self, player: 'Player') -> None:
-        if "Coins" in player.inventory:
-            player.inventory["Coins"] += self.amount
+        if  self.__str__()  in player.inventory:
+            player.inventory[self.__str__()] += self.amount
         else:
-             player.inventory["Coins"] = self.amount
+             player.inventory[self.__str__()] = self.amount
 
 
 class Structure(Entity):
@@ -493,13 +421,16 @@ class Structure(Entity):
 class Tower(Structure):
     def __init__(self):
         self.reveal_radius: int = 2
+        super().__init__()
     def interact(self, board: "Board") -> None:
         circle_i = (self.position[0] - self.reveal_radius, self.position[0] + self.reveal_radius)
         circle_y = (self.position[1] -  self.reveal_radius, self.position[1] +  self.reveal_radius)
+        
         for i in range(circle_i[0], circle_i[1]+1):
             for y in range(circle_y[0], circle_y[1]+1):
-                place = board.grid[i][y]
-                place[1] = True
+                if i>= 0 and y>=0 and i<= board.goal[0] and y<= board.goal[1]:
+                    place = board.grid[i][y]
+                    place[1] = True
     
     def symbol():
         pass
@@ -531,6 +462,9 @@ class Rat(Enemy):
         self.infection_damage_base: float = 5.0
         self.infection_turns: int = 3
         self.reward_coins: int = 200
+
+    def __str__(self):
+        return "Rat"
     
     def before_turn(self, player: "Player") -> None:
             if self.hp == self.flee_threshold * 100 * (1 + self.lvl / 10):
@@ -565,6 +499,9 @@ class Spider(Enemy):
         self.poison_damage_base: float = 15.0
         self.poison_turns: int = 2
         self.reward_coins: int = 250
+    
+    def __str__(self):
+        return "Spider"
 
     def before_turn(self, player: "Player") -> None:
         if self.hp == 0.15 * 100 * (1 + self.lvl / 10):
@@ -593,7 +530,10 @@ class Skeleton(Enemy):
         self.reward_coins: int = 150
         self.lvl = randint(1,10)
         self.max_damage = 10 * (1 + self.lvl / 10)
-
+    
+    def __str__(self):
+        return "Skeleton"
+    
     def before_turn(self, player: "Player") -> None:
         pass
 
@@ -629,100 +569,131 @@ def start(n:int, m:int, player_lvl:int)-> tuple["Board","Player"]:
     for i in range(n):
         for y in range(m):
             if i == 0 and y == 0:
-                desk[i][y] = (None,True)
+                desk[i][y] = [None,True]
             elif i==n-1 and y==m-1:
-                desk[i][y] = (None,True)
+                desk[i][y] = [None,True]
             else:
                 tow = [0 if k > int(n*m*p_tower) else 1 for k in range(n*m)]
                 rand_tow = choice(tow)
                 if rand_tow == 1:
-                    desk[i][y] = (Tower(),False)
+                    desk[i][y] = [Tower(),False]
                 else:
                     bon = [0 if k > int(n*m*p_bonus) else 1 for k in range(n*m)]
                     rand_bon = choice(bon)
                     if rand_bon == 1:
-                        desk[i][y] = (choice(bonuses), False)
+                        desk[i][y] = [choice(bonuses), False]
                        
                     else:
                         ene = [0 if k > int(n*m*p_enemy) else 1 for k in range(n*m)]
                         rand_ene = choice(ene)
-                        print(rand_ene)
                         if rand_ene == 1:
-                            desk[i][y] = (choice(enemies), False)
+                            desk[i][y] = [choice(enemies), False]
                             
                         else:
                             wea = [0 if k > int(n*m*p_weapon) else 1 for k in range(n*m)]
                             rand_wea = choice(wea)
                             if rand_wea == 1:
-                                desk[i][y] = (choice(weapons), False)
+                                desk[i][y] = [choice(weapons), False]
                                 
                             else:
-                                desk[i][y] = (None,False)
+                                desk[i][y] = [None,False]
 
    
     return Board(n,m,desk,(0,0),(n-1,m-1)), Player(player_lvl, fist, {}, {})
 
 def game(board: Board, player: Player) -> None:
-    print('Добро пожаловать в игру "Сдохни или умри!"\n Команды:\n w-вперед \n a - налево \n d - направо \n s - назад \n f - атака')
+    print('Добро пожаловать в игру "Сдохни или умри!"\n Команды:\n w - вперед \n a - налево \n d - направо \n s - назад \n f - атака \n i - Посмотреть инвентарь')
     i=player.position[0]
     y=player.position[1]
-    print(player.position)
+    coors = board.grid[i][y]
+      
     while player.position[0] != board.goal[0] or  player.position[1] != board.goal[1] :
+
         command = input()
+
+        if command == "i":
+            for key in player.inventory:
+                print(f"{key} - {player.inventory[key]}")
+      
+        if command == "w":
+            if board.in_bounds((i+1,y)):
+                player.move(i+1,y)
+                print("Вы пошли вперед!")
+                coors[1] = True
+                board.render(player)
+            else:
+                 print("не удалось пойти")
+            
+        
+        elif command == "a":
+            if board.in_bounds((i,y+1)):
+                player.move(i,y+1)
+                print("Вы пошли налево!")
+                coors[1] = True
+                board.render(player)
+            else:
+                print("не удалось пойти")
+            
+
+        elif command == "d":
+            if board.in_bounds((i,y-1)) and y>0:
+                player.move(i,y-1)
+                print("Вы пошли направо!")
+                coors[1] = True
+                board.render(player)
+            else:
+                print("не удалось пойти")
+
+        elif command == "s":
+            if board.in_bounds((i-1,y)) and i>0:
+                player.move(i-1,y)
+                print("Вы пошли назад!")
+                coors[1] = True
+                board.render(player)
+            else:
+                print("не удалось пойти")
+        
+        i=player.position[0]
+        y=player.position[1]
         coors = board.grid[i][y]
 
-        if command == "w" and board.in_bounds((i+1,y)):
-            player.move(i+1,y)
-            print("Вы пошли вперед!", end = " ")
-            print(player.position)
-            board.render(player)
-        else:
-            print("не удалось пойти")
-        if command == "a" and board.in_bounds((i,y+1)):
-            player.move(i,y+1)
-            print("Вы пошли налево!",end = " ")
-            print(player.position)
-        if command == "d" and y>0 and board.in_bounds((i,y-1)):
-            player.move(i,y-1)
-            print("Вы пошли направо!", end = " ")
-            print(player.position)
-        if command == "s" and i>0 and board.in_bounds((i-1,y)):
-            player.move(i-1,y)
-            print("Вы пошли назад!",end = " ")
-            print(player.position)
-        
+            
         if isinstance(coors[0], Tower):
-            print("\033[1;33;40m Tower!\n")
+            print("\033[1;33m Tower!\033[0m \n")
+            coors[0].position = (i,y)
             coors[0].interact(board)
+            board.render(player)
+            print("Открыты новые поля!\n")
+           
         
         if isinstance(coors[0], Bonus):
-            print(f"\033[1;32;40m{coors[0]}\n")
+            print(f"\033[1;32m {coors[0]}!\033[0m\n")
             coors[0].apply(player)
         
         if isinstance(coors[0], Enemy):
-            print(f"\033[1;31;40m{coors[0]}\n")
+            print(f"\033[1;31m{coors[0]}!\033[0m\n")
             player.fight = True
             while player.is_alive() and coors[0].is_alive():
                 command = input()
-                print(f"\033[1;31;40m {coors[0].before_turn(player)}\n")
-                print(f"\033[1;31;40m {coors[0].attack(player)}\n")
+                print(f"\033[1;31m {coors[0].before_turn(player)}!\033[0m\n")
+                print(f"\033[1;31m {coors[0].attack(player)}!\033[0m\n")
                 if command == 'f':
-                    print(f"\033[1;32;40m {player.attack(coors[0])}\n")
-                if command == "b":
-                    n = 1
-                    for key in player.inventory:
-                       print(f" {n}- {key} - {player.inventory[key]}", end = "")
-                       print("Введите номер бонуса")
-                       n+=1
-                    n = 1
-                    m = int(input())
-                    if m <= len(player.inventory):
-                        for key in player.inventory:
-                            if n!=m:
-                                pass
-                            else:
-                                player.inventory.apply(player)
-                            n+=1
+                    print(f"{player.attack(coors[0])}\n")
+                # if command == "b":
+                #     n = 1
+                #     for key in player.inventory:
+                #        print(f" {n}- {key} - {player.inventory[key]}", end = "")
+                #        print("Введите номер бонуса")
+                #        n+=1
+                #     n = 1
+                #     m = int(input())
+                #     if m <= len(player.inventory):
+                #         for key in player.inventory:
+                #             if n!=m:
+                #                 pass
+                #             else:
+                #                 player.inventory.apply(player)
+                #             n+=1
 
 if __name__ == "__main__":
     print(start(10,5,6))
