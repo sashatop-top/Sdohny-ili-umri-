@@ -10,7 +10,6 @@ class Entity(ABC):
         pass
 
 
-
 class Board():
     def __init__(self, rows:int,cols:int,grid: list[list[tuple[Entity| None, bool]]],start: tuple[int,int],goal:tuple[int,int]) -> None:
         self.rows = rows
@@ -112,11 +111,11 @@ class Player(Entity,Damageable,Attacker):
         self.position = (d_row, d_col)
 
     def attack(self, target: Damageable) -> float:
-        if isinstance(self.weapon, Revolver) or isinstance(self.weapon, Bow): 
-            amount = self.weapon.damage(self.accuracy)
+        if isinstance(self.weapon, RangedWeapon): 
+            amount = round(self.weapon.damage(self.accuracy),2)
             return target.take_damage(amount)
-        else: 
-            amount = self.weapon.damage(self.rage)
+        elif isinstance(self.weapon,MeleeWeapon):
+            amount = round(self.weapon.damage(self.rage),2)
             return target.take_damage(amount)
     
     def choose_weapon(self,new_weapon: "Weapon") -> None:
@@ -137,7 +136,10 @@ class Player(Entity,Damageable,Attacker):
         return self.take_damage(amount)
     
     def add_coins(self, amount: int) -> None:
-        self.inventory["Coins"] += amount
+        if "Coins" in self.inventory:
+            self.inventory["Coins"] += amount
+        else:
+            self.inventory["Coins"] = amount
 
     def use_bonus(self, bonus: "Bonus") -> None:
         bonus.apply(self)
@@ -155,17 +157,11 @@ class Player(Entity,Damageable,Attacker):
             self.change_fight = True
 
 
-
-
 class Bonus(Entity):
     @abstractmethod
     def apply(self, player: 'Player') -> None:
         pass
     
-    def symbol(self):
-        return "B"
-
-
 class Weapon(Entity):
     def __init__(self, name:str,max_damage:float) -> None:
         self.name = name
@@ -179,21 +175,20 @@ class Weapon(Entity):
     def is_available(self) -> bool:
         pass
 
-
 class MeleeWeapon(Weapon):
     def is_available(self) -> bool:
         pass
 
     def roll_damage(self) -> float:
-        w_damage = uniform(0, self.max_damage)
+        w_damage = round(uniform(0, self.max_damage),2)
         return w_damage
        
     def damage(self,rage: float) -> float:
-        if self.roll_damage() * rage <= self.max_damage:
-            return self.roll_damage() * rage 
+        uron = self.roll_damage() * rage
+        if uron <= self.max_damage:
+            return uron
         else:
             return self.max_damage
-
      
 class RangedWeapon(Weapon):
     def is_available(self) -> bool:
@@ -203,7 +198,7 @@ class RangedWeapon(Weapon):
         self.ammo = ammo
     
     def roll_damage(self) -> float:
-        w_damage = uniform(0, self.max_damage)
+        w_damage = round(uniform(0, self.max_damage),2)
         return w_damage
     
     def consume_ammo(self, n: int = 1) -> bool:
@@ -212,15 +207,13 @@ class RangedWeapon(Weapon):
         else:
             return False
     
-    def damage(self, accuracy: float) -> float:
-        if self.consume_ammo() is True: 
-            if self.roll_damage() * accuracy <= self.max_damage:
+    def damage(self, accuracy: float = 1) -> float:
+        if self.consume_ammo() is True:
+            uron = self.roll_damage() * accuracy
+            if uron <= self.max_damage:
                 return accuracy * self.roll_damage()
             else:
                 return self.max_damage
-        else:
-            return "Увы, ваш боезапас пуст!"
-
 
 class Fist(MeleeWeapon):
     def __init__(self) -> None:
@@ -234,10 +227,7 @@ class Fist(MeleeWeapon):
         pass
 
     def damage(self,rage: float) -> float:
-        if self.roll_damage() * rage <= self.max_damage:
-            return self.roll_damage() * rage 
-        else:
-            return self.max_damage
+        return super().damage(rage)
     
     def symbol():
         pass
@@ -257,15 +247,16 @@ class Stick(MeleeWeapon):
         else:
             return False
     
-    def damage(self,rage: float) -> float:
-        if self.roll_damage() * rage <= self.max_damage:
+    def damage(self,rage: float = 1) -> float:
+        uron = self.roll_damage() * rage
+        if uron <= self.max_damage:
             self.durability = self.durability - 1
-            return self.roll_damage() * rage 
+            return uron
         else:
             return self.max_damage
-        
+
     def symbol():
-        pass
+        pass 
 
 class Bow(RangedWeapon):
     def __init__(self) -> None:
@@ -282,16 +273,15 @@ class Bow(RangedWeapon):
         else:
             return False
         
-    def damage(self, accuracy: float) -> float:
+    def damage(self, accuracy: float = 1) -> float:
         if self.consume_ammo() is True: 
-            if self.roll_damage() * accuracy <= self.max_damage:
+            uron = self.roll_damage() * accuracy
+            if uron <= self.max_damage:
                 self.ammo = self.ammo - 1
-                return accuracy * self.roll_damage()
+                return uron
             else:
                 return self.max_damage
-        else:
-            return "Увы, ваш боезапас пуст!"
-        
+ 
     def symbol():
         pass
 
@@ -311,16 +301,14 @@ class Revolver(RangedWeapon):
         else:
             return False
     
-    def damage(self, accuracy: float) -> float:
+    def damage(self, accuracy: float = 1) -> float:
         if self.consume_ammo() is True: 
-            if self.roll_damage() * accuracy <= self.max_damage:
+            uron = self.roll_damage() * accuracy
+            if uron <= self.max_damage:
                 self.ammo = self.ammo - 1
-                return accuracy * self.roll_damage()
+                return uron
             else:
                 return self.max_damage
-        else:
-            return "Увы, ваш боезапас пуст!"
-    
     def symbol():
         pass
         
@@ -340,7 +328,7 @@ class Medkit(Bonus):
                 player.del_inventory()
             else:
                 if player.inventory["Coins"] >= self.price:
-                    player.inventory -= self.price
+                    player.inventory["Coins"] -= self.price
                     player.del_inventory()
                 else: 
                     print("Не хватает денег!")
@@ -349,6 +337,8 @@ class Medkit(Bonus):
                 player.inventory[self.__str__()] += 1
             else:
                 player.inventory[self.__str__()] = 1
+    def symbol():
+        pass
 
 class Rage(Bonus):
     def __init__(self):
@@ -360,7 +350,6 @@ class Rage(Bonus):
 
     def apply(self, player: 'Player') -> None:
         if player.fight == True:
-            old_rage = player.rage #после боя вернуть обратно
             player.rage += self.multiplier
             if self.__str__() in player.inventory:
                 player.inventory[self.__str__()] -= 1
@@ -376,7 +365,8 @@ class Rage(Bonus):
                 player.inventory[self.__str__()] += 1
             else:
                 player.inventory[self.__str__()] = 1
-
+    def symbol():
+        pass
 
 class Arrows(Bonus): # нельзя купить
     def __init__(self):
@@ -398,6 +388,8 @@ class Arrows(Bonus): # нельзя купить
                 player.inventory[self.__str__()] += 1
             else:
                 player.inventory[self.__str__()] = 1
+    def symbol():
+        pass
 
 class Bullets(Bonus):
     def __init__(self) -> None:
@@ -419,6 +411,8 @@ class Bullets(Bonus):
                 player.inventory[self.__str__()] += 1
             else:
                 player.inventory[self.__str__()] = 1
+    def symbol():
+        pass
 
 class Accuracy(Bonus):
     def __init__(self):
@@ -446,7 +440,8 @@ class Accuracy(Bonus):
                 player.inventory[self.__str__()] += 1
             else:
                 player.inventory[self.__str__()] = 1
-
+    def symbol():
+        pass
 
 class Coins(Bonus):
     def __init__(self):
@@ -460,7 +455,8 @@ class Coins(Bonus):
             player.inventory[self.__str__()] += self.amount
         else:
              player.inventory[self.__str__()] = self.amount
-
+    def symbol():
+        pass
 
 class Structure(Entity):
     @abstractmethod
@@ -534,7 +530,7 @@ class Rat(Enemy):
                 return player.apply_status_tick()
 
     def attack(self, target: Damageable) -> float:
-        amount = uniform(0, 15 * (1 + self.lvl / 10))
+        amount = round(uniform(0, 15 * (1 + self.lvl / 10)),2)
         target.take_damage(amount)
         return amount
     
@@ -555,11 +551,11 @@ class Spider(Enemy):
     def __str__(self):
         return "Spider"
 
-    def before_turn(self, player: "Player") -> None:
+    def before_turn(self, player: "Player") -> str:
         if self.hp == 0.15 * 100 * (1 + self.lvl / 10):
                 a = randint(1,int(1/self.summon_chance_low_hp))
                 if a==1:
-                    return Spider(randint(1,10),20 * (1 + Spider.lvl / 10),250)
+                    return Spider()
                 else:
                     pass
         b = randint(1,int(1/self.poison_chance * (1 + self.lvl / 10)))
@@ -568,12 +564,12 @@ class Spider(Enemy):
                 player.statuses["Poison"] += self.poison_turns
             else: 
                 player.statuses["Poison"] = self.poison_turns
-            player.apply_status_tick()
+            return player.apply_status_tick()
 
     def attack(self, target: Damageable) -> float:
-        target.take_damage(uniform(0,20 * (1 + self.lvl / 10)))
-        return uniform(0,20 * (1 + self.lvl / 10))
-    
+        amount = round(uniform(0,20 * (1 + self.lvl / 10)),2)
+        target.take_damage(amount)
+        return amount
     def symbol(self) -> str:
         pass
 
@@ -592,15 +588,26 @@ class Skeleton(Enemy):
         pass
 
     def attack(self, target: Damageable) -> float:
-            target.take_damage(self.weapon.damage())
-            return self.weapon.damage()
+            if isinstance(self.weapon, RangedWeapon):
+                self.weapon.ammo = 100
+                amount = self.weapon.damage()
+                if amount > self.max_damage:
+                    amount = self.max_damage
+                    target.take_damage(amount)
+            elif isinstance(self.weapon, MeleeWeapon):
+                if isinstance(self.weapon, Stick):
+                    self.durability = 100
+                amount = self.weapon.damage()
+                if amount > self.max_damage:
+                    amount = self.max_damage
+                    target.take_damage(amount)
+            return amount
   
     def drop_loot(self, player: "Player") -> Weapon | None:
         if isinstance(self.weapon, Fist):
             pass
         else:
-            #опустить оружие
-            pass
+            player.weapon = self.weapon
 
     def symbol(self) -> str:
         pass
@@ -745,10 +752,11 @@ def game(board: Board, player: Player) -> None:
             print(f"\033[1;31m{coors[0]}!\033[0m\n")
             player.fight = True
             while player.is_alive() and coors[0].is_alive():
+                old_rage = player.rage
+                old_accuracy = player.accuracy
                 if isinstance(player.weapon, MeleeWeapon):
-                    print("Использовать бонус? y,n\n")
+                    print("Использовать бонус? y,n\nПри n будет выполнена атака без бонуса\n" )
                     command = input()
-                    old_rage = player.rage
                     if command == "y":
                         bonuses = {"Rage":50, "Medkit":75}
                         for bon in bonuses:
@@ -776,29 +784,39 @@ def game(board: Board, player: Player) -> None:
                             else:
                                 player.use_bonus(Rage())
                                 print("You use Rage!")
-                        elif command == "n":
-                            print("Fight!")
-                    for item in player.statuses:
-                        if player.statuses[item] > 0:
-                            player.statuses[item] -=1
-                            print(f"\033[1;31m {player.statuses[item]}! {round(player.apply_status_tick(),2)}\033[0m\n")
 
+                        for item in player.statuses:
+                            if player.statuses[item] > 0:
+                                player.statuses[item] -=1
+                                print(f"\033[1;31m {item}! {round(player.apply_status_tick(),2)}\033[0m\n")
+                        if player.weapon.is_available():
+                            print(f"  You attack! {round(player.attack(coors[0]),2)}\n")
+                        else:
+                            player.weapon = Fist()
+                            print(f"  You attack! {round(player.attack(coors[0]),2)}\n")
+                        
 
-                    print(f"You attack! {round(player.attack(coors[0]),2)}")
-                    player.rage = old_rage
-
-
-                else:
+                    elif command == "n":
+                        for item in player.statuses:
+                            if player.statuses[item] > 0:
+                                player.statuses[item] -=1
+                                print(f"\033[1;31m {item}! {round(player.apply_status_tick(),2)}\033[0m\n")
+                        if player.weapon.is_available():
+                            print(f"You attack! {round(player.attack(coors[0]),2)}\n")
+                        else:
+                            player.weapon = Fist()
+                            print(f"You attack! {round(player.attack(coors[0]),2)}\n")
+                        
+                elif isinstance(player.weapon, MeleeWeapon):
                     print("Использовать бонус? y,n\n")
                     command = input()
-                    old_accuracy = player.accuracy
                     if command == "y":
-                        bonuses = {"Accuracy":50, "Medkit":75, "Bullets": None, "Arrows": None}
+                        bonuses = {"Accuracy":50, "Medkit":75, "Bullets": -10, "Arrows": -10}
                         for bon in bonuses:
                             if bon in player.inventory:
                                 print(f"{bon} - {player.inventory[bon]} thing")
                             else:
-                                if player.inventory[bon] != None:
+                                if bonuses[bon] != -10:
                                     print(f"{bon} - {bonuses[bon]} coins")
                                 else:
                                     print(f"{bon} - Нельзя купить!")
@@ -829,28 +847,46 @@ def game(board: Board, player: Player) -> None:
                             player.use_bonus(Arrows())
                             print(f"\033[1;32m +{Arrows().amount}!\033[0m\n")
                             print("You use Bullets!")
-                        elif command == "n":
-                            print("Fight!")
+                        for item in player.statuses:
+                            if player.statuses[item] > 0:
+                                player.statuses[item] -=1
+                                print(f"\033[1;31m {item}! {round(player.apply_status_tick(),2)}\033[0m\n")
+                        if player.weapon.is_available():
+                                print(f"You attack! {round(player.attack(coors[0]),2)}\n")
+                        else:
+                            player.weapon = Fist()
+                            print(f"You attack! {round(player.attack(coors[0]),2)}\n")
                     
-                    for item in player.statuses:
-                        if player.statuses[item] > 0:
-                            player.statuses[item] -=1
-                            print(f"\033[1;31m {item}! {round(coors[0].attack(player),2)}\033[0m\n")
+                    elif command == "n":
+                        for item in player.statuses:
+                            if player.statuses[item] > 0:
+                                player.statuses[item] -=1
+                                print(f"\033[1;31m {item}! {round(player.apply_status_tick(),2)}\033[0m\n")
+                        if player.weapon.is_available() and not isinstance(player.weapon,Fist):
+                            print(f"You attack! {round(player.attack(coors[0]),2)}\n")
+                        else:
+                            player.weapon = Fist()
+                            print(f"You attack! {round(player.attack(coors[0]),2)}\n")
+                        
+                player.accuracy = old_accuracy
+                player.rage = old_rage
 
-                    print(f"You attack! {round(player.attack(coors[0]),2)}")
-                    player.accuracy = old_accuracy
-
-                print(f"\033{coors[0].before_turn(player)}\033[0m\n")
-                if coors[0].before_turn(player) == "Крыса убежала!":
-                    print(f"{coors[0].before_turn(player)}\n")
-                    coors[0].hp = 0
-                    coors[0] = None
-                    break
+                # if coors[0].before_turn(player) == "Крыса убежала!":
+                #     print(f"{coors[0].before_turn(player)}\n")
+                #     player.add_coins(coors[0].reward_coins)
+                #     coors[0].hp = 0
+                #     coors[0] = None
+                #     break
                 
-                elif coors[0].before_turn(player) == player.apply_status_tick():
-                    print(f"\033[1;31m О нет! Вас заразили на 3 хода! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                # elif coors[0].before_turn(player) == player.apply_status_tick():
+                #     print(f"\033[1;31m О нет! Вас заразили на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                
+                # elif coors[0].before_turn(player) == Spider():
+                #     print(f"Появился новый паук!")
+
 
                 print(f"\033[1;31m Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                print(f"Your hp: {round(player.hp,2)}\nEnemy hp: {round(coors[0].hp,2)}\n")
 
             if player.hp == 0:
                 print(f"\033[1;31m FATAL! Вы проиграли!\033[0m\n")
@@ -859,41 +895,10 @@ def game(board: Board, player: Player) -> None:
             elif coors[0].hp == 0:
                 print(f"\033[1;32m Ура вы победили врага!\033[0m\n")
                 player.add_coins(coors[0].reward_coins)
-                break
+                coors[0] = None
 
-
-
-
-                                   
-
-            
-
-
-                      
-    
-
-                #     if "Rage" in player.inventory:
-                #         player.attack(coors[0])
-
-                # print(f"\033[1;31m {coors[0].before_turn(player)}!\033[0m\n")
-                # print(f"\033[1;31m {coors[0].attack(player)}!\033[0m\n")
-                # if command == 'f':
-                #     print(f"{player.attack(coors[0])}\n")
-                # if command == "b":
-                #     n = 1
-                #     for key in player.inventory:
-                #        print(f" {n}- {key} - {player.inventory[key]}", end = "")
-                #        print("Введите номер бонуса")
-                #        n+=1
-                #     n = 1
-                #     m = int(input())
-                #     if m <= len(player.inventory):
-                #         for key in player.inventory:
-                #             if n!=m:
-                #                 pass
-                #             else:
-                #                 player.inventory.apply(player)
-                #             n+=1
+    if player.hp > 0:
+        print(f"\033[1;32m VICTORY!\033[0m\n")
 
 if __name__ == "__main__":
     print(start(10,5,6))
