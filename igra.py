@@ -73,10 +73,10 @@ class Damageable(ABC):
             return False
     
     def heal(self, amount: float) -> float:
-        self.hp = self.hp + amount
+        self.hp += amount
         if self.hp > self.max_hp:
             self.hp = self.max_hp
-        return self.hp
+        return amount
     
     def take_damage(self, amount: float) -> float:
         if self.hp - amount >= 0:
@@ -184,7 +184,7 @@ class MeleeWeapon(Weapon):
         return w_damage
        
     def damage(self,rage: float) -> float:
-        uron = self.roll_damage() * rage
+        uron = round(self.roll_damage() * rage,2)
         if uron <= self.max_damage:
             return uron
         else:
@@ -314,7 +314,7 @@ class Revolver(RangedWeapon):
         
 class Medkit(Bonus):
     def __init__(self):
-        self.power = uniform(10,40)
+        self.power = round(uniform(10,40),2)
         self.price: int = 75
     
     def __str__(self) -> None:
@@ -342,7 +342,7 @@ class Medkit(Bonus):
 
 class Rage(Bonus):
     def __init__(self):
-        self.multiplier = uniform(0.1,1.0)
+        self.multiplier = round(uniform(0.1,1.0),2)
         self.price: int = 50
 
     def __str__(self) -> None:
@@ -402,7 +402,7 @@ class Bullets(Bonus):
         if isinstance(player.weapon,Revolver):
             if player.fight == True:
                 player.inventory["RevAmmo"] += self.amount
-                player.inventory[self.__str__]-=1
+                player.inventory[self.__str__()]-=1
                 player.del_inventory()
             else:
                 player.inventory["RevAmmo"] += self.amount
@@ -467,6 +467,7 @@ class Tower(Structure):
     def __init__(self):
         self.reveal_radius: int = 2
         super().__init__()
+
     def interact(self, board: "Board") -> None:
         circle_i = (self.position[0] - self.reveal_radius, self.position[0] + self.reveal_radius)
         circle_y = (self.position[1] -  self.reveal_radius, self.position[1] +  self.reveal_radius)
@@ -579,7 +580,7 @@ class Skeleton(Enemy):
         self.lvl = randint(1,10)
         self.max_damage = 10 * (1 + self.lvl / 10)
         self.weapon = weapon
-        Damageable.__init__(self, 100*(1+self.lvl/10), 100*(1+self.lvl/10))
+        Damageable.__init__(self,100*(1+self.lvl/10), 100*(1+self.lvl/10))
     
     def __str__(self):
         return "Skeleton"
@@ -753,6 +754,8 @@ def game(board: Board, player: Player) -> None:
             print("Взять это оружие? y\n")
         
         elif isinstance(coors[0], Enemy):
+            ulala = 0
+            counter = 0
             print(f"\033[1;31m{coors[0]}!\033[0m\n")
             player.fight = True
             while player.is_alive() and coors[0].is_alive():
@@ -773,6 +776,7 @@ def game(board: Board, player: Player) -> None:
                         else:
                             print("You have no money!\n")
                         print(f"medkit - m\nRage - r\n")
+
                         command = input()
                         if command == "m": 
                             if "Medkit" not in player.inventory:
@@ -794,10 +798,10 @@ def game(board: Board, player: Player) -> None:
                                 player.statuses[item] -=1
                                 print(f"\033[1;31m {item}! {round(player.apply_status_tick(),2)}\033[0m\n")
                         if player.weapon.is_available():
-                            print(f"  You attack! {round(player.attack(coors[0]),2)}\n")
+                            print(f" You attack! {round(player.attack(coors[0]),2)}\n")
                         else:
                             player.weapon = Fist()
-                            print(f"  You attack! {round(player.attack(coors[0]),2)}\n")
+                            print(f" You attack! {round(player.attack(coors[0]),2)}\n")
                         
 
                     elif command == "n":
@@ -811,7 +815,7 @@ def game(board: Board, player: Player) -> None:
                             player.weapon = Fist()
                             print(f"You attack! {round(player.attack(coors[0]),2)}\n")
                         
-                elif isinstance(player.weapon, MeleeWeapon):
+                elif isinstance(player.weapon, RangedWeapon):
                     print("Использовать бонус? y,n\n")
                     command = input()
                     if command == "y":
@@ -875,19 +879,33 @@ def game(board: Board, player: Player) -> None:
                 player.accuracy = old_accuracy
                 player.rage = old_rage
 
-                # if coors[0].before_turn(player) == "Крыса убежала!":
-                #     print(f"{coors[0].before_turn(player)}\n")
-                #     player.add_coins(coors[0].reward_coins)
-                #     coors[0].hp = 0
-                #     coors[0] = None
-                #     break
+                if coors[0].before_turn(player) == "Крыса убежала!":
+                    print(f"{coors[0].before_turn(player)}\n")
+                    player.add_coins(coors[0].reward_coins)
+                    coors[0] = None
+                    break
                 
-                # elif coors[0].before_turn(player) == player.apply_status_tick():
-                #     print(f"\033[1;31m О нет! Вас заразили на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                elif coors[0].before_turn(player) == player.apply_status_tick() and isinstance(coors[0], Rat):
+                    print(f"\033[1;31m О нет! Вас инфецировали на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
                 
-                # elif coors[0].before_turn(player) == Spider():
-                #     print(f"Появился новый паук!")
+                elif coors[0].before_turn(player) == player.apply_status_tick() and isinstance(coors[0], Rat):
+                    print(f"\033[1;31m О нет! Вы отравлены на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
 
+                elif isinstance(coors[0].before_turn(player), Spider):
+                     print(f"\033[1;31m О нет! Новый паук! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                     ulala = 1
+                     counter += 1
+                     spider = coors[0].before_turn(player)
+
+                if ulala == 1:
+                    if coors[0].hp == 0:
+                        coors[0] = spider
+                        counter-=1
+                    for i in range(counter):
+                        print(f"\033[1;31m Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+
+                if isinstance(coors[0],Skeleton) and coors[0].hp == 0:
+                    coors[0].drop_loot(player)
 
                 print(f"\033[1;31m Damage! {round(coors[0].attack(player),2)}\033[0m\n")
                 print(f"Your hp: {round(player.hp,2)}\nEnemy hp: {round(coors[0].hp,2)}\n")
