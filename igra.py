@@ -622,7 +622,7 @@ def start(n:int, m:int, player_lvl:int)-> tuple["Board","Player"]:
         desk.append(lst)
     weapons = [Revolver(),Stick(),Bow()]
     bonuses = [Medkit(),Arrows(),Rage(),Bullets(),Accuracy(),Coins()]
-    enemies = [Skeleton(choice(weapons)),Rat(), Spider()]
+    enemies = [Skeleton,Rat, Spider]
     p_tower = 0.01
     p_weapon = 0.05
     p_enemy = 0.15
@@ -648,8 +648,12 @@ def start(n:int, m:int, player_lvl:int)-> tuple["Board","Player"]:
                         ene = [0 if k > int(n*m*p_enemy) else 1 for k in range(n*m)]
                         rand_ene = choice(ene)
                         if rand_ene == 1:
-                            desk[i][y] = [choice(enemies), False]
-                            
+                            enemy = choice(enemies)
+                            if enemy == Skeleton:
+                                desk[i][y] = [enemy(choice(weapons)), False]
+                            else:
+                                desk[i][y] = [enemy(), False]
+
                         else:
                             wea = [0 if k > int(n*m*p_weapon) else 1 for k in range(n*m)]
                             rand_wea = choice(wea)
@@ -901,5 +905,5 @@ def game(board: Board, player: Player) -> None:
         print(f"\033[1;32m VICTORY!\033[0m\n")
 
 if __name__ == "__main__":
-    print(start(10,5,6))
-    game(start(10,5,randint(1,10))[0], start(10,5,randint(1,10))[1])
+    print(start(10,10,6))
+    game(start(10,10,randint(1,10))[0], start(10,10,randint(1,10))[1])
