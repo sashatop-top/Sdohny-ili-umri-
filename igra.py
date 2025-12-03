@@ -778,7 +778,7 @@ def pre_game(board: Board, player: Player) -> None:
             igra_dict = json.load(file)
             dificutly = igra_dict['dificutly']
             level = igra_dict['current_lvl']
-            print(f'Ты на {level+1} уровне\nПродолжить уровень(p) или начать заново(z)?')
+            print(f'Ты на {level+1} уровне\nПродолжить уровень(незавершенная игра)(p) или начать новую игру(z)?')
             command = input()
             if command == 'p':
                 player_dict = igra_dict['player']
@@ -1213,30 +1213,32 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
                 player.accuracy = old_accuracy
                 player.rage = old_rage
 
-                # if coors[0].before_turn(player) == "Крыса убежала!":
-                #     print(f"{coors[0].before_turn(player)}\n")
-                #     player.add_coins(coors[0].reward_coins)
-                #     coors[0] = None
-                #     break
-                
-                # elif coors[0].before_turn(player) == player.apply_status_tick() and isinstance(coors[0], Rat):
-                #     print(f"\033[1;31m О нет! Вас инфецировали на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
-                
-                # elif coors[0].before_turn(player) == player.apply_status_tick() and isinstance(coors[0], Rat):
-                #     print(f"\033[1;31m О нет! Вы отравлены на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                opa = coors[0].before_turn(player)
 
-                # elif isinstance(coors[0].before_turn(player), Spider):
-                #      print(f"\033[1;31m О нет! Новый паук! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
-                #      ulala = 1
-                #      counter += 1
-                #      spider = coors[0].before_turn(player)
+                if opa == "Крыса убежала!":
+                    print(f"{coors[0].before_turn(player)}\n")
+                    player.add_coins(coors[0].reward_coins)
+                    coors[0] = None
+                    break
+                
+                elif opa == player.apply_status_tick() and isinstance(coors[0], Rat):
+                    print(f"\033[1;31m О нет! Вас инфецировали на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                
+                elif opa == player.apply_status_tick() and isinstance(coors[0], Spider):
+                    print(f"\033[1;31m О нет! Вы отравлены на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
 
-                # if ulala == 1:
-                #     if coors[0].hp == 0:
-                #         coors[0] = spider
-                #         counter-=1
-                #     for i in range(counter):
-                #         print(f"\033[1;31m Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                elif isinstance(opa, Spider):
+                     print(f"\033[1;31m О нет! Новый паук! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                     ulala = 1
+                     counter += 1
+                     spider = coors[0].before_turn(player)
+
+                if ulala == 1:
+                    if coors[0].hp == 0:
+                        coors[0] = spider
+                        counter-=1
+                    for i in range(counter):
+                        print(f"\033[1;31m Damage! {round(coors[0].attack(player),2)}\033[0m\n")
 
                 if isinstance(coors[0],Skeleton) and coors[0].hp == 0:
                     coors[0].drop_loot(player)
