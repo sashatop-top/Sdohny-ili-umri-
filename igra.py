@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from random import uniform, randint, choice,random
+from pathlib import Path
+import json
    
 class Entity(ABC):
     def __init__(self,position: tuple[int, int] = (0,0)) -> None:
@@ -8,7 +10,6 @@ class Entity(ABC):
     @abstractmethod
     def symbol(self) -> str:
         pass
-
 
 class Board():
     def __init__(self, rows:int,cols:int,grid: list[list[tuple[Entity| None, bool]]],start: tuple[int,int],goal:tuple[int,int]) -> None:
@@ -59,6 +60,24 @@ class Board():
                     else:
                         print("|X|",end =' ')
             print("\n")
+
+    def save_board(self):
+        grid_dict = {}
+        for i in range(self.rows):
+            for y in range(self.cols):
+                coors = self.grid[i][y]
+                if coors[0] != None:
+                    grid_dict[f'({i},{y})'] = [coors[0].to_dict(), coors[1]]
+                else:
+                    grid_dict[f'({i},{y})'] = [coors[0], coors[1]]
+
+
+        board_dict = {"rows": self.rows,
+                      'cols': self.cols,
+                      'grid': grid_dict,
+                      'start': self.start,
+                      'goal': self.goal}
+        return board_dict
 
 class Damageable(ABC):
     def __init__(self, hp: float, max_hp: float) -> None:
@@ -155,6 +174,18 @@ class Player(Entity,Damageable,Attacker):
             self.change_fight = False
         else:
             self.change_fight = True
+    
+    def save_player(self):
+        player_dict = {'lvl' : self.lvl, 
+                    'weapon' : self.weapon.to_dict(),
+                    'inventory': self.inventory,
+                    'statuses': self.statuses,
+                    'rage': self.rage,
+                    'accuracy': self.accuracy,
+                    'position': self.position,
+                    'fight': self.fight}
+
+        return player_dict
 
 
 class Bonus(Entity):
@@ -232,6 +263,9 @@ class Fist(MeleeWeapon):
     def symbol():
         pass
 
+    def to_dict(self):
+        return self.__dict__
+
 class Stick(MeleeWeapon):
     def __init__(self) -> None:
         self.name:str = "Палка"
@@ -257,6 +291,10 @@ class Stick(MeleeWeapon):
 
     def symbol():
         pass 
+
+    def to_dict(self):
+        return self.__dict__
+
 
 class Bow(RangedWeapon):
     def __init__(self) -> None:
@@ -285,6 +323,10 @@ class Bow(RangedWeapon):
     def symbol():
         pass
 
+    def to_dict(self):
+        return self.__dict__
+
+
 
 class Revolver(RangedWeapon):
     def __init__(self) -> None:
@@ -311,11 +353,16 @@ class Revolver(RangedWeapon):
                 return self.max_damage
     def symbol():
         pass
+
+    def to_dict(self):
+        return self.__dict__
+
         
 class Medkit(Bonus):
     def __init__(self):
         self.power = round(uniform(10,40),2)
         self.price: int = 75
+        self.name = 'Medkit'
     
     def __str__(self) -> None:
         return "Medkit"
@@ -340,10 +387,15 @@ class Medkit(Bonus):
     def symbol():
         pass
 
+    def to_dict(self):
+        return self.__dict__
+
+
 class Rage(Bonus):
     def __init__(self):
         self.multiplier = round(uniform(0.1,1.0),2)
         self.price: int = 50
+        self.name = 'Rage'
 
     def __str__(self) -> None:
         return "Rage"
@@ -368,9 +420,14 @@ class Rage(Bonus):
     def symbol():
         pass
 
+    def to_dict(self):
+        return self.__dict__
+
+
 class Arrows(Bonus): # нельзя купить
     def __init__(self):
         self.amount = randint(1,20)
+        self.name = 'Arrows'
 
     def __str__(self) -> None:
         return "Arrows"
@@ -391,9 +448,14 @@ class Arrows(Bonus): # нельзя купить
     def symbol():
         pass
 
+    def to_dict(self):
+        return self.__dict__
+
+
 class Bullets(Bonus):
     def __init__(self) -> None:
         self.amount = randint(1,10)
+        self.name = 'Bullets'
 
     def __str__(self) -> None:
         return "Bullets"
@@ -414,10 +476,15 @@ class Bullets(Bonus):
     def symbol():
         pass
 
+    def to_dict(self):
+        return self.__dict__
+
+
 class Accuracy(Bonus):
     def __init__(self):
         self.multiplier = uniform(0.1,1.0)
         self.price:int = 50
+        self.name = 'Accuracy'
 
     def __str__(self) -> None:
         return "Accuracy"
@@ -442,10 +509,15 @@ class Accuracy(Bonus):
                 player.inventory[self.__str__()] = 1
     def symbol():
         pass
+    
+    def to_dict(self):
+        return self.__dict__
+
 
 class Coins(Bonus):
     def __init__(self):
         self.amount = randint(50,100)
+        self.name = 'Coins'
     
     def __str__(self) -> None:
         return "Coins"
@@ -458,6 +530,10 @@ class Coins(Bonus):
     def symbol():
         pass
 
+    def to_dict(self):
+        return self.__dict__
+
+
 class Structure(Entity):
     @abstractmethod
     def interact(self, player: 'Player') -> None:
@@ -466,6 +542,7 @@ class Structure(Entity):
 class Tower(Structure):
     def __init__(self):
         self.reveal_radius: int = 2
+        self.name = 'Tower'
         super().__init__()
 
     def interact(self, board: "Board") -> None:
@@ -480,6 +557,10 @@ class Tower(Structure):
     
     def symbol():
         pass
+
+    def to_dict(self):
+        return self.__dict__
+
 
 
 class Enemy(Entity, Damageable, Attacker):
@@ -500,6 +581,7 @@ class Enemy(Entity, Damageable, Attacker):
 
 class Rat(Enemy):
     def __init__(self):
+        self.name = 'Rat'
         self.lvl = randint(1,10)
         self.max_damage = 15 * (1 + self.lvl / 10)
         self.infection_chance: float = 0.25
@@ -537,9 +619,15 @@ class Rat(Enemy):
     
     def symbol(self) -> str:
         pass
+
+    def to_dict(self):
+        return self.__dict__
+        
+
     
 class Spider(Enemy):
     def __init__(self):
+        self.name = 'Spider'
         self.lvl = randint(1,10)
         self.max_damage = 20 * (1 + self.lvl / 10)
         self.poison_chance: float = 0.10
@@ -571,11 +659,17 @@ class Spider(Enemy):
         amount = round(uniform(0,20 * (1 + self.lvl / 10)),2)
         target.take_damage(amount)
         return amount
+    
     def symbol(self) -> str:
         pass
 
+    def to_dict(self):
+        return self.__dict__
+
+
 class Skeleton(Enemy):
     def __init__(self,weapon:Weapon):
+        self.name = 'Skeleton'
         self.reward_coins: int = 150
         self.lvl = randint(1,10)
         self.max_damage = 10 * (1 + self.lvl / 10)
@@ -613,7 +707,14 @@ class Skeleton(Enemy):
     def symbol(self) -> str:
         pass
 
-def start(n:int, m:int, player_lvl:int)-> tuple["Board","Player"]:
+    def to_dict(self):
+        weapon_dict = self.weapon.to_dict()
+        scel_dict = self.__dict__
+        scel_dict['weapon'] = weapon_dict
+
+
+def start(n,m,our_dict: dict[str:float])-> tuple["Board","Player"]:
+    player_lvl = randint(1,10)
     fist = Fist()
     desk = []
     for i in range(n):
@@ -624,10 +725,10 @@ def start(n:int, m:int, player_lvl:int)-> tuple["Board","Player"]:
     weapons = [Revolver(),Stick(),Bow()]
     bonuses = [Medkit(),Arrows(),Rage(),Bullets(),Accuracy(),Coins()]
     enemies = [Skeleton,Rat, Spider]
-    p_tower = 0.01
-    p_weapon = 0.05
-    p_enemy = 0.15
-    p_bonus = 0.3
+    p_tower = our_dict["tower_multiplier"]
+    p_weapon = our_dict["weapon_multiplier"]
+    p_enemy = our_dict["enemy_multiplier"]
+    p_bonus = our_dict["bonus_multiplier"]
     for i in range(n):
         for y in range(m):
             if i == 0 and y == 0:
@@ -667,9 +768,228 @@ def start(n:int, m:int, player_lvl:int)-> tuple["Board","Player"]:
    
     return Board(n,m,desk,(0,0),(n-1,m-1)), Player(player_lvl, fist, {}, {})
 
-def game(board: Board, player: Player) -> None:
-    print('Добро пожаловать в игру "Сдохни или умри!"\n Команды:\n w - вперед \n a - налево \n d - направо \n s - назад \n f - атака \n i - Посмотреть инвентарь\n x - Посмотреть оружие')
-    i=player.position[0]
+def pre_game(board: Board, player: Player) -> None:
+    print('Добро пожаловать в игру "Сдохни или умри!"\n')
+    dificutly = ''
+    level =''
+    path = Path("save_json.py")
+    if path.exists():
+        with open("save_json.py", "r", encoding = "utf-8") as file:
+            igra_dict = json.load(file)
+            dificutly = igra_dict['dificutly']
+            level = igra_dict['current_lvl']
+            print(f'Ты на {level} уровне\nПродолжить уровень(p) или начать заново(z)?')
+            command = input()
+            if command == 'p':
+                player_dict = igra_dict['player']
+                player.lvl = player_dict["lvl"]
+                weapon = player_dict["weapon"]
+                weapons1 = [Fist(), Stick(), Revolver(), Bow()]
+                for name in weapons1:
+                    if name == weapon['name']:
+                        player.weapon = name
+                player.inventory = player_dict["inventory"]
+                player.statuses = player_dict["statuses"]
+                player.rage = player_dict["rage"]
+                player.accuracy = player_dict["accuracy"]
+                player.fight = player_dict["fight"]
+                player.position = player_dict["position"]
+
+                board_dict = igra_dict['board']
+                board.rows =board_dict['rows']
+                board.cols =board_dict['cols']
+                b_grid = board_dict['grid']
+                desk = []
+                for i in range(board.rows):
+                    lst = []
+                    for y in range(board.cols):
+                        lst.append(0)
+                    desk.append(lst)
+                for i in range(board.rows):
+                    for y in range(board.cols):
+                        chtoto00 = b_grid[f'({i},{y})']
+                        chtoto0 = chtoto00[0]
+                        chtoto1 = chtoto00[1]
+                        if chtoto0 is not None:
+                        #     entities = [Fist, Stick, Revolver, Bow, Medkit, Arrows, Bullets, Rage, Accuracy, Spider, Skeleton, Rat]
+                        #     for entity in entities:
+                            if chtoto0["name"] == Skeleton(Fist()).name:
+                                desk[i][y] = [Skeleton(chtoto0['weapon']), chtoto1]
+
+                            elif chtoto0['name'] == Fist().name:
+                                desk[i][y] = [Fist(), chtoto1]
+
+                            elif chtoto0['name'] == Stick().name:
+                                desk[i][y] = [Stick(), chtoto1]
+                                
+                            elif chtoto0['name'] == Revolver().name:
+                                desk[i][y] = [Revolver(), chtoto1]
+                                
+                            elif chtoto0['name'] == Bow().name:
+                                desk[i][y] = [Bow(), chtoto1]
+
+                            elif chtoto0['name'] == Medkit().name:
+                                desk[i][y] = [Medkit(), chtoto1]
+
+                            elif chtoto0['name'] == Arrows().name:
+                                desk[i][y] = [Arrows(), chtoto1]
+
+                            elif chtoto0['name'] == Bullets().name:
+                                desk[i][y] = [Bullets(), chtoto1]
+                                
+                            elif chtoto0['name'] ==  Accuracy().name:
+                                desk[i][y] = [Accuracy(), chtoto1]
+                                
+                            elif chtoto0['name'] == Rat().name:
+                                desk[i][y] = [Rat(), chtoto1]
+                                
+                            elif chtoto0['name'] == Rage().name:
+                                desk[i][y] = [Rage(), chtoto1]
+
+                            elif chtoto0['name'] == Spider().name:
+                                desk[i][y] = [Spider(), chtoto1]
+                            
+                            elif chtoto0['name'] == Coins().name:
+                                desk[i][y] = [Coins(), chtoto1]
+                            
+                            elif chtoto0['name'] == Tower().name:
+                                desk[i][y] = [Tower(), chtoto1]
+                        else:
+                            desk[i][y] = [None, chtoto1]
+                board.grid = desk
+                board.start = board_dict['start']
+                board.goal = board_dict['goal']
+                game(board, player, dificutly, level)
+
+            if command == "z":
+                print("Выберите уровень\neasy\nnormal\nhard")
+                command = input()
+                our_dict = {}
+                with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                    urov_dict = json.load(file)
+
+                if command == 'easy':
+                    with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                        our_dict = urov_dict["easy"]
+                        dificutly = "easy"
+                        n = randint(our_dict['board_min'], our_dict['board_max'])
+                        m = randint(our_dict['board_min'], our_dict['board_max'])
+                    if Path("save_json.py").exists():
+                        with open("save_json.py", "r", encoding = "utf-8") as file2:
+                            save_dict = json.dump(file2, ensure_ascii=False)
+                            if save_dict["dificutly"] == 'easy':
+                                level = save_dict['lvl']+1
+                            else: 
+                                level = 1
+                    else:
+                        level = 1
+
+                game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], level, dificutly)
+        
+            elif command == 'normal':
+                with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                    our_dict = urov_dict["normal"]
+                    dificutly = "normal"
+                n = randint(our_dict['board_min'], our_dict['board_max'])
+                m = randint(our_dict['board_min'], our_dict['board_max'])
+
+                if Path("save_json.py").exists():
+                    with open("save_json.py", "r", encoding = "utf-8") as file2:
+                        save_dict = json.dump(file2, ensure_ascii=False)
+                        if save_dict["dificutly"] == 'normal':
+                            level = save_dict['lvl']+1
+                        else: 
+                            level = 1
+                else:
+                    level = 1
+                game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], level, dificutly)
+
+
+            elif command == 'hard':
+                with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                    our_dict = urov_dict["hard"]
+                    dificutly = 'hard'
+                    n = randint(our_dict['board_min'], our_dict['board_max'])
+                    m = randint(our_dict['board_min'], our_dict['board_max'])
+        
+                if Path("save_json.py").exists():
+                    with open("save_json.py", "r", encoding = "utf-8") as file2:
+                        save_dict = json.dump(file2, ensure_ascii=False)
+                        if save_dict["dificutly"] == 'hard':
+                            level = save_dict['lvl']+1
+                        else: 
+                            level = 1
+                else:
+                    level = 1
+                game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], level, dificutly)
+                        
+                
+    else:
+        print("Выберите уровень\neasy\nnormal\nhard")
+        command = input()
+        our_dict = {}
+        with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+            urov_dict = json.load(file)
+
+        if command == 'easy':
+            with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                our_dict = urov_dict["easy"]
+                dificutly = "easy"
+                n = randint(our_dict['board_min'], our_dict['board_max'])
+                m = randint(our_dict['board_min'], our_dict['board_max'])
+            if Path("save_json.py").exists():
+                with open("save_json.py", "r", encoding = "utf-8") as file2:
+                    save_dict = json.dump(file2, ensure_ascii=False)
+                    if save_dict["dificutly"] == 'easy':
+                        level = save_dict['lvl']+1
+                    else: 
+                        level = 1
+            else:
+                level = 1
+
+            game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], level, dificutly)
+        
+        elif command == 'normal':
+            with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                our_dict = urov_dict["normal"]
+                dificutly = "normal"
+                n = randint(our_dict['board_min'], our_dict['board_max'])
+                m = randint(our_dict['board_min'], our_dict['board_max'])
+
+            if Path("save_json.py").exists():
+                with open("save_json.py", "r", encoding = "utf-8") as file2:
+                    save_dict = json.dump(file2, ensure_ascii=False)
+                    if save_dict["dificutly"] == 'normal':
+                        level = save_dict['lvl']+1
+                    else: 
+                        level = 1
+            else:
+                level = 1
+            game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], level, dificutly)
+
+
+        elif command == 'hard':
+            with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                our_dict = urov_dict["hard"]
+                dificutly = 'hard'
+                n = randint(our_dict['board_min'], our_dict['board_max'])
+                m = randint(our_dict['board_min'], our_dict['board_max'])
+        
+            if Path("save_json.py").exists():
+                with open("save_json.py", "r", encoding = "utf-8") as file2:
+                    save_dict = json.dump(file2, ensure_ascii=False)
+                    if save_dict["dificutly"] == 'hard':
+                        level = save_dict['lvl']+1
+                    else: 
+                        level = 1
+            else:
+                level = 1
+            game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], dificutly, level)
+
+    
+def game(board: Board, player: Player, level: int, dificutly: int) -> None:
+    print('Команды:\n w - вперед \n a - налево \n d - направо \n s - назад \n f - атака \n i - Посмотреть инвентарь\n x - Посмотреть оружие\n')
+
     i=player.position[0]
     y=player.position[1]
     coors = board.grid[i][y]
@@ -677,6 +997,17 @@ def game(board: Board, player: Player) -> None:
     while player.position[0] != board.goal[0] or  player.position[1] != board.goal[1] :
 
         command = input()
+
+        if command == "exit":
+            dict_igra = {'current_lvl': level,
+                         'dificutly': dificutly,
+                         'player': player.save_player(),
+                         'board': board.save_board()}
+            igra_string = json.dumps(dict_igra, ensure_ascii=False)
+            with open ("save_json.py", "w", encoding = "utf-8") as file:
+                file.write(igra_string)
+            print("Вы вышли из игры!")
+            break
 
         if command == "y":
             player.choose_weapon(coors[0])
@@ -772,7 +1103,7 @@ def game(board: Board, player: Player) -> None:
                             else:
                                  print(f"{bon} - {bonuses[bon]} coins")
                         if "Coins" in player.inventory:
-                            print(f"You have {player.inventory["Coins"]} coins\n")
+                            print(f"You have {player.inventory['Coins']} coins\n")
                         else:
                             print("You have no money!\n")
                         print(f"medkit - m\nRage - r\n")
@@ -829,7 +1160,7 @@ def game(board: Board, player: Player) -> None:
                                 else:
                                     print(f"{bon} - Нельзя купить!")
                         if "Coins" in player.inventory:
-                            print(f"You have {player.inventory["Coins"]} coins\n")
+                            print(f"You have {player.inventory['Coins']} coins\n")
                         else:
                             print("You have no money!\n")
                         print(f"medkit - m\nAccuracy - ac\nBullets - b\nArrows\n")
@@ -912,16 +1243,60 @@ def game(board: Board, player: Player) -> None:
 
             if player.hp == 0:
                 print(f"\033[1;31m FATAL! Вы проиграли!\033[0m\n")
-                break
+                if Path('save_json.py').exists():
+                    with open('save_json.py', 'r', encoding = 'utf-8') as file:
+                        dict_info = json.load(file)
+                        dict_info['current_lvl'] = 0
+                        string_info = json.dumps(dict_info)
+                    with open('save_json.py', 'w', encoding = 'utf-8') as file:
+                        file.write(string_info)
+                    break
             
             elif coors[0].hp == 0:
                 print(f"\033[1;32m Ура вы победили врага!\033[0m\n")
                 player.add_coins(coors[0].reward_coins)
                 coors[0] = None
 
-    if player.hp > 0:
+    if player.position[0] == board.goal[0] and player.position[1] == board.goal[1]:
         print(f"\033[1;32m VICTORY!\033[0m\n")
+        path2 = Path('record_json')
+        if path2.exists():
+            with open('record_json', 'w', encoding = 'utf-8') as file:
+                record_dict = json.loads(file)
+                if record_dict['Level'] > level:
+                    if 'Coins' in player.inventory:
+                        dict_record = {'level': level, 
+                                       'coins': player.inventory["Coins"]}
+                    else:
+                        dict_record = {'level': level, 
+                                       'coins': 0}
+                    record_string = json.dumps(dict_record)
+                    file.write(record_string)
+                    print("New Record!")
+                
+                elif record_dict['Level'] == level and record_dict['Coins'] < player.inventory["Coins"]:
+                    if 'Coins' in player.inventory:
+                        dict_record = {'level': level, 
+                                       'coins': player.inventory["Coins"]}
+                    else:
+                        dict_record = {'level': level, 
+                                       'coins': 0}
+                    record_string = json.dumps(dict_record)
+                    file.write(record_string)
+                    print("New record!")
+                
+    else:
+            with open('record_json', 'w', encoding = 'utf-8') as file:
+                if 'Coins' in player.inventory:
+                    dict_record = {'level': level, 
+                                    'coins': player.inventory["Coins"]}
+                else:
+                    dict_record = {'level': level, 
+                                    'coins': 0}
+                record_string = json.dumps(dict_record)
+                file.write(record_string)
+
 
 if __name__ == "__main__":
-    print(start(10,10,6))
-    game(start(10,10,randint(1,10))[0], start(10,10,randint(1,10))[1])
+    # game(start(10,10,randint(1,10))[0], start(10,10,randint(1,10))[1])
+    pre_game(Board(0,0,[],0,0), Player(1, Fist(), {}, {}))
