@@ -770,15 +770,15 @@ def start(n,m,our_dict: dict[str:float])-> tuple["Board","Player"]:
 
 def pre_game(board: Board, player: Player) -> None:
     print('Добро пожаловать в игру "Сдохни или умри!"\n')
-    dificutly = ''
-    level =''
+    # dificutly = ''
+    # level =''
     path = Path("save_json.py")
     if path.exists():
         with open("save_json.py", "r", encoding = "utf-8") as file:
             igra_dict = json.load(file)
             dificutly = igra_dict['dificutly']
             level = igra_dict['current_lvl']
-            print(f'Ты на {level} уровне\nПродолжить уровень(p) или начать заново(z)?')
+            print(f'Ты на {level+1} уровне\nПродолжить уровень(p) или начать заново(z)?')
             command = input()
             if command == 'p':
                 player_dict = igra_dict['player']
@@ -1000,6 +1000,7 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
 
         command = input()
 
+
         if command == "exit":
             dict_igra = {'current_lvl': level,
                          'dificutly': dificutly,
@@ -1212,33 +1213,34 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
                 player.accuracy = old_accuracy
                 player.rage = old_rage
 
-                if coors[0].before_turn(player) == "Крыса убежала!":
-                    print(f"{coors[0].before_turn(player)}\n")
-                    player.add_coins(coors[0].reward_coins)
-                    coors[0] = None
-                    break
+                # if coors[0].before_turn(player) == "Крыса убежала!":
+                #     print(f"{coors[0].before_turn(player)}\n")
+                #     player.add_coins(coors[0].reward_coins)
+                #     coors[0] = None
+                #     break
                 
-                elif coors[0].before_turn(player) == player.apply_status_tick() and isinstance(coors[0], Rat):
-                    print(f"\033[1;31m О нет! Вас инфецировали на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                # elif coors[0].before_turn(player) == player.apply_status_tick() and isinstance(coors[0], Rat):
+                #     print(f"\033[1;31m О нет! Вас инфецировали на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
                 
-                elif coors[0].before_turn(player) == player.apply_status_tick() and isinstance(coors[0], Rat):
-                    print(f"\033[1;31m О нет! Вы отравлены на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                # elif coors[0].before_turn(player) == player.apply_status_tick() and isinstance(coors[0], Rat):
+                #     print(f"\033[1;31m О нет! Вы отравлены на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
 
-                elif isinstance(coors[0].before_turn(player), Spider):
-                     print(f"\033[1;31m О нет! Новый паук! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
-                     ulala = 1
-                     counter += 1
-                     spider = coors[0].before_turn(player)
+                # elif isinstance(coors[0].before_turn(player), Spider):
+                #      print(f"\033[1;31m О нет! Новый паук! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                #      ulala = 1
+                #      counter += 1
+                #      spider = coors[0].before_turn(player)
 
-                if ulala == 1:
-                    if coors[0].hp == 0:
-                        coors[0] = spider
-                        counter-=1
-                    for i in range(counter):
-                        print(f"\033[1;31m Damage! {round(coors[0].attack(player),2)}\033[0m\n")
+                # if ulala == 1:
+                #     if coors[0].hp == 0:
+                #         coors[0] = spider
+                #         counter-=1
+                #     for i in range(counter):
+                #         print(f"\033[1;31m Damage! {round(coors[0].attack(player),2)}\033[0m\n")
 
                 if isinstance(coors[0],Skeleton) and coors[0].hp == 0:
                     coors[0].drop_loot(player)
+                    print(f'Новое оружие!')
 
                 print(f"\033[1;31m Damage! {round(coors[0].attack(player),2)}\033[0m\n")
                 print(f"Your hp: {round(player.hp,2)}\nEnemy hp: {round(coors[0].hp,2)}\n")
@@ -1261,33 +1263,43 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
 
     if player.position[0] == board.goal[0] and player.position[1] == board.goal[1]:
         print(f"\033[1;32m VICTORY!\033[0m\n")
+        dict_igra = {'current_lvl': level,
+                         'dificutly': dificutly,
+                         'player': player.save_player(),
+                         'board': board.save_board()}
+        igra_string = json.dumps(dict_igra, ensure_ascii=False)
+        with open ("save_json.py", "w", encoding = "utf-8") as file:
+            file.write(igra_string)
         path2 = Path('record_json')
         if path2.exists():
-            with open('record_json', 'w', encoding = 'utf-8') as file:
-                record_dict = json.loads(file)
-                if record_dict['Level'] > level:
+            with open('record_json', 'r', encoding = 'utf-8') as file:
+                record_dict = json.load(file)
+                if record_dict['level'] < level:
                     if 'Coins' in player.inventory:
-                        dict_record = {'level': level, 
+                        record_dict = {'level': level, 
                                        'coins': player.inventory["Coins"]}
                     else:
-                        dict_record = {'level': level, 
+                        record_dict = {'level': level, 
                                        'coins': 0}
-                    record_string = json.dumps(dict_record)
-                    file.write(record_string)
-                    print("New Record!")
+                    record_string = json.dumps(record_dict)
+                    with open('record_json', 'w', encoding = 'utf-8') as file:
+                        file.write(record_string)
+                        print("New Record!")
                 
-                elif record_dict['Level'] == level and record_dict['Coins'] < player.inventory["Coins"]:
+                elif record_dict['level'] == level:
                     if 'Coins' in player.inventory:
-                        dict_record = {'level': level, 
-                                       'coins': player.inventory["Coins"]}
+                        if record_dict['coins'] < player.inventory["Coins"]:
+                            record_dict = {'level': level, 
+                                        'coins': player.inventory["Coins"]}
                     else:
-                        dict_record = {'level': level, 
-                                       'coins': 0}
-                    record_string = json.dumps(dict_record)
-                    file.write(record_string)
-                    print("New record!")
+                        record_dict = {'level': level, 
+                                        'coins': 0}
+                    record_string = json.dumps(record_dict)
+                    with open('record_json', 'w', encoding = 'utf-8') as file:
+                        file.write(record_string)
+                        print("New Record!")
                 
-    else:
+        else:
             with open('record_json', 'w', encoding = 'utf-8') as file:
                 if 'Coins' in player.inventory:
                     dict_record = {'level': level, 
