@@ -876,33 +876,97 @@ def pre_game(board: Board, player: Player) -> None:
                         m = randint(our_dict['board_min'], our_dict['board_max'])
                     if Path("save_json.py").exists():
                         with open("save_json.py", "r", encoding = "utf-8") as file2:
-                            save_dict = json.dump(file2, ensure_ascii=False)
+                            save_dict = json.load(file2)
                             if save_dict["dificutly"] == 'easy':
-                                level = save_dict['lvl']+1
+                                level = save_dict['current_lvl']+1
                             else: 
                                 level = 1
                     else:
                         level = 1
+                    return n,m, our_dict, level, dificutly
+                
+                elif command == 'normal':
+                    with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                        our_dict = urov_dict["normal"]
+                        dificutly = "normal"
+                        n = randint(our_dict['board_min'], our_dict['board_max'])
+                        m = randint(our_dict['board_min'], our_dict['board_max'])
 
-                game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], level, dificutly)
+                    if Path("save_json.py").exists():
+                        with open("save_json.py", "r", encoding = "utf-8") as file2:
+                            save_dict = json.load(file2)
+                            if save_dict["dificutly"] == 'normal':
+                                level = save_dict['current_lvl']+1
+                            else: 
+                                level = 1
+                    else:
+                        level = 1
+                
+                    return n,m, our_dict, level, dificutly
+
+
+                elif command == 'hard':
+                    with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                        our_dict = urov_dict["hard"]
+                        dificutly = 'hard'
+                        n = randint(our_dict['board_min'], our_dict['board_max'])
+                        m = randint(our_dict['board_min'], our_dict['board_max'])
         
-            elif command == 'normal':
-                with open("dificutly_json.py", "r", encoding = "utf-8") as file:
-                    our_dict = urov_dict["normal"]
-                    dificutly = "normal"
-                n = randint(our_dict['board_min'], our_dict['board_max'])
-                m = randint(our_dict['board_min'], our_dict['board_max'])
+                    if Path("save_json.py").exists():
+                        with open("save_json.py", "r", encoding = "utf-8") as file2:
+                            save_dict = json.load(file2)
+                            if save_dict["dificutly"] == 'hard':
+                                level = save_dict['current_lvl']+1
+                            else: 
+                                level = 1
+                    else:
+                        level = 1
+            
+                    return n,m, our_dict, level, dificutly
+                        
+                
+    else:
+        print("Выберите уровень\neasy\nnormal\nhard")
+        command = input()
+        our_dict = {}
+        with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+            urov_dict = json.load(file)
 
+            if command == 'easy':
+                with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                    our_dict = urov_dict["easy"]
+                    dificutly = "easy"
+                    n = randint(our_dict['board_min'], our_dict['board_max'])
+                    m = randint(our_dict['board_min'], our_dict['board_max'])
                 if Path("save_json.py").exists():
                     with open("save_json.py", "r", encoding = "utf-8") as file2:
-                        save_dict = json.dump(file2, ensure_ascii=False)
-                        if save_dict["dificutly"] == 'normal':
-                            level = save_dict['lvl']+1
+                        save_dict = json.load(file2)
+                        if save_dict["dificutly"] == 'easy':
+                            level = save_dict['current_lvl']+1
                         else: 
                             level = 1
                 else:
                     level = 1
-                game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], level, dificutly)
+                return n,m, our_dict, level, dificutly
+                
+            elif command == 'normal':
+                with open("dificutly_json.py", "r", encoding = "utf-8") as file:
+                    our_dict = urov_dict["normal"]
+                    dificutly = "normal"
+                    n = randint(our_dict['board_min'], our_dict['board_max'])
+                    m = randint(our_dict['board_min'], our_dict['board_max'])
+
+                if Path("save_json.py").exists():
+                    with open("save_json.py", "r", encoding = "utf-8") as file2:
+                        save_dict = json.load(file2)
+                        if save_dict["dificutly"] == 'normal':
+                            level = save_dict['current_lvl']+1
+                        else: 
+                            level = 1
+                else:
+                    level = 1
+                
+                return n,m, our_dict, level, dificutly
 
 
             elif command == 'hard':
@@ -914,77 +978,15 @@ def pre_game(board: Board, player: Player) -> None:
         
                 if Path("save_json.py").exists():
                     with open("save_json.py", "r", encoding = "utf-8") as file2:
-                        save_dict = json.dump(file2, ensure_ascii=False)
+                        save_dict = json.load(file2)
                         if save_dict["dificutly"] == 'hard':
-                            level = save_dict['lvl']+1
+                            level = save_dict['current_lvl']+1
                         else: 
                             level = 1
                 else:
                     level = 1
-                game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], level, dificutly)
-                        
-                
-    else:
-        print("Выберите уровень\neasy\nnormal\nhard")
-        command = input()
-        our_dict = {}
-        with open("dificutly_json.py", "r", encoding = "utf-8") as file:
-            urov_dict = json.load(file)
-
-        if command == 'easy':
-            with open("dificutly_json.py", "r", encoding = "utf-8") as file:
-                our_dict = urov_dict["easy"]
-                dificutly = "easy"
-                n = randint(our_dict['board_min'], our_dict['board_max'])
-                m = randint(our_dict['board_min'], our_dict['board_max'])
-            if Path("save_json.py").exists():
-                with open("save_json.py", "r", encoding = "utf-8") as file2:
-                    save_dict = json.dump(file2, ensure_ascii=False)
-                    if save_dict["dificutly"] == 'easy':
-                        level = save_dict['lvl']+1
-                    else: 
-                        level = 1
-            else:
-                level = 1
-
-            game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], level, dificutly)
-        
-        elif command == 'normal':
-            with open("dificutly_json.py", "r", encoding = "utf-8") as file:
-                our_dict = urov_dict["normal"]
-                dificutly = "normal"
-                n = randint(our_dict['board_min'], our_dict['board_max'])
-                m = randint(our_dict['board_min'], our_dict['board_max'])
-
-            if Path("save_json.py").exists():
-                with open("save_json.py", "r", encoding = "utf-8") as file2:
-                    save_dict = json.dump(file2, ensure_ascii=False)
-                    if save_dict["dificutly"] == 'normal':
-                        level = save_dict['lvl']+1
-                    else: 
-                        level = 1
-            else:
-                level = 1
-            game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], level, dificutly)
-
-
-        elif command == 'hard':
-            with open("dificutly_json.py", "r", encoding = "utf-8") as file:
-                our_dict = urov_dict["hard"]
-                dificutly = 'hard'
-                n = randint(our_dict['board_min'], our_dict['board_max'])
-                m = randint(our_dict['board_min'], our_dict['board_max'])
-        
-            if Path("save_json.py").exists():
-                with open("save_json.py", "r", encoding = "utf-8") as file2:
-                    save_dict = json.dump(file2, ensure_ascii=False)
-                    if save_dict["dificutly"] == 'hard':
-                        level = save_dict['lvl']+1
-                    else: 
-                        level = 1
-            else:
-                level = 1
-            game(start(n,m,our_dict)[0], start(n,m,our_dict)[1], dificutly, level)
+            
+                return n,m, our_dict, level, dificutly
 
     
 def game(board: Board, player: Player, level: int, dificutly: int) -> None:
@@ -1299,4 +1301,6 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
 
 if __name__ == "__main__":
     # game(start(10,10,randint(1,10))[0], start(10,10,randint(1,10))[1])
-    pre_game(Board(0,0,[],0,0), Player(1, Fist(), {}, {}))
+    fun = pre_game(Board(0,0,[],0,0), Player(1, Fist(), {}, {}))
+    if fun != None:
+        game(start(fun[0], fun[1], fun[2])[0], start(fun[0], fun[1], fun[2])[1], fun[3], fun[4])
