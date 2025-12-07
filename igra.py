@@ -10,8 +10,7 @@ def register_class(cls):
 
 
 class Entity(ABC):
-    def __init__(self,position: tuple[int, int] = (0,0)) -> None:
-        # super().__init__()
+    def __init__(self,position: tuple[int, int] = (0,0)) -> None:     
         self.position = position
     
     @abstractmethod
@@ -279,7 +278,7 @@ class RangedWeapon(Weapon):
 @register_class
 class Fist(MeleeWeapon):
     def __init__(self) -> None:
-        self.name:str = "Кулак"
+        self.name:str = "Fist"
         self.max_damage:float = 20
     
     def __str__(self):
@@ -301,7 +300,7 @@ class Fist(MeleeWeapon):
 @register_class
 class Stick(MeleeWeapon):
     def __init__(self) -> None:
-        self.name:str = "Палка"
+        self.name:str = "Stick"
         self.max_damage:float = 25
         self.durability:int = uniform(10,20)
     
@@ -332,7 +331,7 @@ class Stick(MeleeWeapon):
 @register_class
 class Bow(RangedWeapon):
     def __init__(self) -> None:
-        self.name:str = "Лук"
+        self.name:str = "Bow"
         self.max_damage:float = 35
         self.ammo:int = randint(10,15)
     
@@ -365,7 +364,7 @@ class Bow(RangedWeapon):
 @register_class
 class Revolver(RangedWeapon):
     def __init__(self) -> None:
-        self.name:str = "Револьвер"
+        self.name:str = "Revolver"
         self.max_damage:float = 45
         self.ammo:int = randint(5,10)
     
@@ -783,15 +782,16 @@ class Skeleton(Enemy):
         return cls(**d)
 
 
-def start(n,m,our_dict: dict[str:float], level: int, dificutly: str)-> tuple["Board","Player"]:
+def start(n,m,our_dict: dict[str:float], level: int, dificutly: str, board: Board)-> tuple["Board","Player"]:
     player_lvl = randint(1,10)
     fist = Fist()
     desk = []
     for i in range(n):
         lst = []
         for y in range(m):
-            lst.append(0)
+            lst.append([0, False])
         desk.append(lst)
+    board.grid = desk
     weapons = [Revolver(),Stick(),Bow()]
     bonuses = [Medkit(),Arrows(),Rage(),Bullets(),Accuracy(),Coins()]
     enemies = [Skeleton,Rat, Spider]
@@ -802,19 +802,23 @@ def start(n,m,our_dict: dict[str:float], level: int, dificutly: str)-> tuple["Bo
     for i in range(n):
         for y in range(m):
             if i == 0 and y == 0:
-                desk[i][y] = [None,True]
+                board.place(None, (i,y))
+                board.grid[i][y][1] = True
             elif i==n-1 and y==m-1:
-                desk[i][y] = [None,True]
+                board.place(None, (i,y))
+                board.grid[i][y][1] = True
             else:
                 tow = [0 if k > int(n*m*p_tower) else 1 for k in range(n*m)]
                 rand_tow = choice(tow)
                 if rand_tow == 1:
-                    desk[i][y] = [Tower(),False]
+                    board.place(Tower(), (i,y))
+                    board.grid[i][y][1] = False
                 else:
                     bon = [0 if k > int(n*m*p_bonus) else 1 for k in range(n*m)]
                     rand_bon = choice(bon)
                     if rand_bon == 1:
-                        desk[i][y] = [choice(bonuses), False]
+                        board.place(choice(bonuses), (i,y))
+                        board.grid[i][y][1] = False
                        
                     else:
                         ene = [0 if k > int(n*m*p_enemy) else 1 for k in range(n*m)]
@@ -822,18 +826,23 @@ def start(n,m,our_dict: dict[str:float], level: int, dificutly: str)-> tuple["Bo
                         if rand_ene == 1:
                             enemy = choice(enemies)
                             if enemy == Skeleton:
-                                desk[i][y] = [enemy(choice(weapons)), False]
+                                board.place(Skeleton(choice(weapons)), (i,y))
+                                board.grid[i][y][1] = False
                             else:
-                                desk[i][y] = [enemy(), False]
+                                board.place(choice(enemies)(), (i,y))
+                                board.grid[i][y][1] = False
 
                         else:
                             wea = [0 if k > int(n*m*p_weapon) else 1 for k in range(n*m)]
                             rand_wea = choice(wea)
                             if rand_wea == 1:
-                                desk[i][y] = [choice(weapons), False]
+                                board.place(choice(weapons), (i,y))
+                                board.grid[i][y][1] = False
                                 
                             else:
-                                desk[i][y] = [None,False]
+                                board.place(None, (i,y))
+                                board.grid[i][y][1] = False
+    desk = board.grid
 
    
     game(Board(n,m,desk,(0,0),(n-1,m-1)), Player(player_lvl, fist, {}, {}), level, dificutly)
@@ -857,7 +866,6 @@ def pre_game(board: Board, player: Player) -> None:
                         player.weapon = wea
                 board_dict = igra_dict['board']
                 board = board.from_dict(board_dict)
-
                 b_grid = board_dict['grid']
                 board.grid = []
                 for i in range(board.rows):
@@ -871,66 +879,27 @@ def pre_game(board: Board, player: Player) -> None:
                         coors = b_grid[f'({i},{y})']
                         entity =  coors[0]
                         status = coors[1]
+
                         if entity is not None:
+                    
                             if entity["name"] == Skeleton(Fist()).name:
                                 board.place(Skeleton(Fist()).from_dict(entity), (i,y)) #из-за кол-во hp может быть важно
                                 board.grid[i][y][1] = status
 
-                            elif entity['name'] == Fist().name:
-                                board.place(Fist(), (i,y))
-                                board.grid[i][y][1] = status
-
-                            elif entity['name'] == Stick().name:
-                                board.place(Stick(), (i,y))
-                                board.grid[i][y][1] = status
-                                
-                            elif entity['name'] == Revolver().name:
-                                board.place(Revolver(), (i,y))
-                                board.grid[i][y][1] = status
-                                
-                            elif entity['name'] == Bow().name:
-                                board.place(Bow(), (i,y))
-                                board.grid[i][y][1] = status
-
-                            elif entity['name'] == Medkit().name:
-                                board.place(Medkit(), (i,y))
-                                board.grid[i][y][1] = status
-
-                            elif entity['name'] == Arrows().name:
-                                board.place(Arrows(), (i,y))
-                                board.grid[i][y][1] = status
-
-                            elif entity['name'] == Bullets().name:
-                                board.place(Bullets(), (i,y))
-                                board.grid[i][y][1] = status
-                                
-                            elif entity['name'] ==  Accuracy().name:
-                                board.place(Accuracy(), (i,y))
-                                board.grid[i][y][1] = status
-                                
                             elif entity['name'] == Rat().name:
                                 board.place(Rat().from_dict(entity), (i,y))
-                                board.grid[i][y][1] = status
-                                
-                            elif entity['name'] == Rage().name:
-                                board.place(Rage(), (i,y))
                                 board.grid[i][y][1] = status
 
                             elif entity['name'] == Spider().name:
                                 board.place(Spider().from_dict(entity), (i,y))
                                 board.grid[i][y][1] = status
-                            
-                            elif entity['name'] == Coins().name:
-                                board.place(Coins(), (i,y))
-                                board.grid[i][y][1] = status
-                            
-                            elif entity['name'] == Tower().name:
-                                board.place(Tower(), (i,y))
+                            else:
+                                board.place(CLASS_SERIALIZE[entity['name']](), (i,y))
                                 board.grid[i][y][1] = status
                         else:
-                            board.place(None, (i,y))
+                            board.grid[i][y][0] = None
                             board.grid[i][y][1] = status
-            
+
                 game(board, player, dificutly, level)
 
             if command == "z":
@@ -1391,4 +1360,4 @@ if __name__ == "__main__":
     fun = pre_game(Board(0,0,[],0,0), Player(1, Fist(), {}, {}))
     if fun != None:
         # game(start(fun[0], fun[1], fun[2])[0], start(fun[0], fun[1], fun[2])[1], fun[3], fun[4])
-        start(fun[0], fun[1], fun[2], fun[3], fun[4])
+        start(fun[0], fun[1], fun[2], fun[3], fun[4], Board(0,0,[[]],(0,0),(0,0)))
