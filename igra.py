@@ -161,12 +161,13 @@ class Player(Entity,Damageable,Attacker):
     def apply_status_tick(self) -> float:
         amount = 0
         for key in self.statuses:
-            if key == "Infection":
-                amount += 5*(1+self.lvl/10)
-                self.statuses["Infection"] -=1
-            if key == "Poison":
-                amount += 15*(1+self.lvl/10)
-                self.statuses["Poison"] -=1
+            if self.statuses[key] > 0:
+                if key == "Infection":
+                    amount += 5*(1+self.lvl/10)
+                    self.statuses["Infection"] -=1
+                if key == "Poison":
+                    amount += 15*(1+self.lvl/10)
+                    self.statuses["Poison"] -=1
 
         
         return self.take_damage(amount)
@@ -219,6 +220,11 @@ class Bonus(Entity):
     def symbol(self):
         return "B"
     
+    @abstractmethod
+    def to_dict(self) -> str:
+        pass
+
+    
 class Weapon(Entity):
     def __init__(self, name:str,max_damage:float) -> None:
         self.name = name
@@ -230,6 +236,10 @@ class Weapon(Entity):
 
     @abstractmethod
     def is_available(self) -> bool:
+        pass
+
+    @abstractmethod
+    def to_dict(self) -> None:
         pass
 
     def symbol(self):
@@ -475,11 +485,14 @@ class Arrows(Bonus): # нельзя купить
     def apply(self, player: 'Player') -> None:
         if isinstance(player.weapon,Bow):
             if player.fight == True:
-                player.inventory["BowAmmo"] += self.amount
-                player.inventory[self.__str__]-=1
+                player.weapon.ammo += self.amount
+                player.inventory[self.__str__()]-=1
                 player.del_inventory()
             else:
-                player.inventory["BowAmmo"] += self.amount
+                if self.__str__() in player.inventory:
+                    player.inventory[self.__str__()] += 1
+                else:
+                    player.inventory[self.__str__()] = 1
         else:
             if self.__str__() in player.inventory:
                 player.inventory[self.__str__()] += 1
@@ -505,11 +518,14 @@ class Bullets(Bonus):
     def apply(self, player: 'Player') -> None:
         if isinstance(player.weapon,Revolver):
             if player.fight == True:
-                player.inventory["RevAmmo"] += self.amount
+                player.weapon.ammo += self.amount
                 player.inventory[self.__str__()]-=1
                 player.del_inventory()
             else:
-                player.inventory["RevAmmo"] += self.amount
+                if  self.__str__() in player.inventory:
+                    player.inventory[self.__str__()] += 1
+                else:
+                    player.inventory[self.__str__()] = 1
         else:
             if  self.__str__() in player.inventory:
                 player.inventory[self.__str__()] += 1
@@ -632,6 +648,11 @@ class Enemy(Entity, Damageable, Attacker):
     def symbol(self) -> str:
         return "E"
     
+    @abstractmethod
+    def to_dict(self) -> str:
+        pass
+
+    
 @register_class
 class Rat(Enemy):
     def __init__(self, name = "Rat", lvl = randint(1,10),hp = 200):
@@ -664,7 +685,7 @@ class Rat(Enemy):
                     player.statuses["Infection"] += self.infection_turns
                 else: 
                     player.statuses["Infection"] = self.infection_turns
-                return player.apply_status_tick()
+                return "Infection"
 
     def attack(self, target: Damageable) -> float:
         amount = round(uniform(0, 15 * (1 + self.lvl / 10)),2)
@@ -712,7 +733,7 @@ class Spider(Enemy):
                 player.statuses["Poison"] += self.poison_turns
             else: 
                 player.statuses["Poison"] = self.poison_turns
-            return player.apply_status_tick()
+            return "Poison"
 
     def attack(self, target: Damageable) -> float:
         amount = round(uniform(0,20 * (1 + self.lvl / 10)),2)
@@ -786,6 +807,10 @@ def start(n,m,our_dict: dict[str:float], level: int, dificutly: str, board: Boar
     player_lvl = randint(1,10)
     fist = Fist()
     desk = []
+    board.rows = n
+    board.cols = m
+    board.start = (0,0)
+    board.goal = (n-1, m-1)
     for i in range(n):
         lst = []
         for y in range(m):
@@ -829,7 +854,7 @@ def start(n,m,our_dict: dict[str:float], level: int, dificutly: str, board: Boar
                                 board.place(Skeleton(choice(weapons)), (i,y))
                                 board.grid[i][y][1] = False
                             else:
-                                board.place(choice(enemies)(), (i,y))
+                                board.place(enemy(), (i,y))
                                 board.grid[i][y][1] = False
 
                         else:
@@ -842,10 +867,66 @@ def start(n,m,our_dict: dict[str:float], level: int, dificutly: str, board: Boar
                             else:
                                 board.place(None, (i,y))
                                 board.grid[i][y][1] = False
-    desk = board.grid
 
+    game(board, Player(player_lvl, fist, {}, {'infection': 0, 'poison': 0}), level, dificutly)
    
-    game(Board(n,m,desk,(0,0),(n-1,m-1)), Player(player_lvl, fist, {}, {}), level, dificutly)
+def dificutly_make():
+    print("Выберите уровень\neasy\nnormal\nhard\n")
+    command = input()
+    our_dict = {}
+    with open("dificutly.json", "r", encoding = "utf-8") as file:
+        urov_dict = json.load(file)
+
+    if command == 'easy':
+        with open("dificutly.json", "r", encoding = "utf-8") as file:
+            our_dict = urov_dict["easy"]
+            dificutly = "easy"
+            n = randint(our_dict['board_min'], our_dict['board_max'])
+            m = randint(our_dict['board_min'], our_dict['board_max'])
+        if Path("save.json").exists():
+                with open("save.json", "r", encoding = "utf-8") as file2:
+                    save_dict = json.load(file2)
+                    
+                level = save_dict['current_lvl']+1
+                
+        else:
+            level = 1
+        return n,m, our_dict, level, dificutly
+                
+    elif command == 'normal':
+        with open("dificutly.json", "r", encoding = "utf-8") as file:
+            our_dict = urov_dict["normal"]
+            dificutly = "normal"
+            n = randint(our_dict['board_min'], our_dict['board_max'])
+            m = randint(our_dict['board_min'], our_dict['board_max'])
+
+        if Path("save.json").exists():
+            with open("save.json", "r", encoding = "utf-8") as file2:
+                save_dict = json.load(file2)
+                level = save_dict['current_lvl']+1
+    
+        else:
+            level = 1
+                
+        return n,m, our_dict, level, dificutly
+
+
+    elif command == 'hard':
+        with open("dificutly.json", "r", encoding = "utf-8") as file:
+            our_dict = urov_dict["hard"]
+            dificutly = 'hard'
+            n = randint(our_dict['board_min'], our_dict['board_max'])
+            m = randint(our_dict['board_min'], our_dict['board_max'])
+        
+        if Path("save.json").exists():
+            with open("save.json", "r", encoding = "utf-8") as file2:
+                save_dict = json.load(file2)
+                level = save_dict['current_lvl']+1
+
+        else:
+            level = 1
+            
+        return n,m, our_dict, level, dificutly
 
 def pre_game(board: Board, player: Player) -> None:
     print('Добро пожаловать в игру "Сдохни или умри!"\n')
@@ -855,185 +936,86 @@ def pre_game(board: Board, player: Player) -> None:
             igra_dict = json.load(file)
             dificutly = igra_dict['dificutly']
             level = igra_dict['current_lvl']
-            print(f'Ты на {level+1} уровне\nПродолжить уровень(незавершенная игра)(p) или начать новую игру(z)?\n')
-            command = input()
-            if command == 'p':
-                player_dict = igra_dict['player']
-                player = player.from_dict(player_dict)
-                weapons = [Fist(), Stick(), Revolver(), Bow()]
-                for wea in weapons:
-                    if wea.name == (player_dict['weapon'])['name']:
-                        player.weapon = wea
-                board_dict = igra_dict['board']
-                board = board.from_dict(board_dict)
-                b_grid = board_dict['grid']
-                board.grid = []
-                for i in range(board.rows):
-                    lst = []
-                    for y in range(board.cols):
-                        lst.append([0, False])
-                    board.grid += [lst]
+            grid = igra_dict['board']['grid']
+            player_position_X = igra_dict['player']['position'][0]
+            igra_position_X = igra_dict['board']['goal'][0]
+            player_position_Y = igra_dict['player']['position'][1]
+            igra_position_Y = igra_dict['board']['goal'][1]
+        if player_position_X == igra_position_X and player_position_Y == igra_position_Y:
+            print(f'У вас нет незавершенных уровней\nТы на {level+1} уровне\nНачать новую игру - z')
+        elif isinstance(grid[f"({player_position_X},{player_position_Y})"] , Enemy): 
+            print(f'У вас нет незавершенных уровней\nТы на {level} уровне\nНачать новую игру - z')
+        else:
+            print(f'Ты на {level} уровне\nПродолжить прохождение незавершенной игры - p\nНачать заново - z\n')
+        command = input()
+        if command == 'p':
+            player_dict = igra_dict['player']
+            player = player.from_dict(player_dict)
+            weapons = [Fist(), Stick(), Revolver(), Bow()]
+            for wea in weapons:
+                if wea.name == (player_dict['weapon'])['name']:
+                    player.weapon = wea
+            board_dict = igra_dict['board']
+            board = board.from_dict(board_dict)
+            b_grid = board_dict['grid']
+            board.grid = []
+            for i in range(board.rows):
+                lst = []
+                for y in range(board.cols):
+                    lst.append([0, False])
+                board.grid += [lst]
 
-                for i in range(board.rows):
-                    for y in range(board.cols):
-                        coors = b_grid[f'({i},{y})']
-                        entity =  coors[0]
-                        status = coors[1]
+            for i in range(board.rows):
+                for y in range(board.cols):
+                    coors = b_grid[f'({i},{y})']
+                    entity =  coors[0]
+                    status = coors[1]
 
-                        if entity is not None:
-                    
-                            if entity["name"] == Skeleton(Fist()).name:
-                                board.place(Skeleton(Fist()).from_dict(entity), (i,y)) #из-за кол-во hp может быть важно
-                                board.grid[i][y][1] = status
-
-                            elif entity['name'] == Rat().name:
-                                board.place(Rat().from_dict(entity), (i,y))
-                                board.grid[i][y][1] = status
-
-                            elif entity['name'] == Spider().name:
-                                board.place(Spider().from_dict(entity), (i,y))
-                                board.grid[i][y][1] = status
-                            else:
-                                board.place(CLASS_SERIALIZE[entity['name']](), (i,y))
-                                board.grid[i][y][1] = status
-                        else:
-                            board.grid[i][y][0] = None
+                    if entity is not None:
+                        if  entity['name'] != 'Skeleton':
+                            board.place(CLASS_SERIALIZE[entity['name']](), (i,y))
                             board.grid[i][y][1] = status
-
-                game(board, player, dificutly, level)
-
-            if command == "z":
-                print("Выберите уровень\neasy\nnormal\nhard")
-                command = input()
-                our_dict = {}
-                with open("dificutly.json", "r", encoding = "utf-8") as file:
-                    urov_dict = json.load(file)
-
-                if command == 'easy':
-                    with open("dificutly.json", "r", encoding = "utf-8") as file:
-                        our_dict = urov_dict["easy"]
-                        dificutly = "easy"
-                        n = randint(our_dict['board_min'], our_dict['board_max'])
-                        m = randint(our_dict['board_min'], our_dict['board_max'])
-                    if Path("save.json").exists():
-                        with open("save.json", "r", encoding = "utf-8") as file2:
-                            save_dict = json.load(file2)
-                            if save_dict["dificutly"] == 'easy':
-                                level = save_dict['current_lvl']+1
-                            else: 
-                                level = 1
+                        else:
+                            board.place(CLASS_SERIALIZE[entity['name']](CLASS_SERIALIZE[entity['weapon']['name']]()), (i,y))
+                            board.grid[i][y][1] = status
                     else:
-                        level = 1
-                    return n,m, our_dict, level, dificutly
-                
-                elif command == 'normal':
-                    with open("dificutly.json", "r", encoding = "utf-8") as file:
-                        our_dict = urov_dict["normal"]
-                        dificutly = "normal"
-                        n = randint(our_dict['board_min'], our_dict['board_max'])
-                        m = randint(our_dict['board_min'], our_dict['board_max'])
+                        board.grid[i][y][0] = None
+                        board.grid[i][y][1] = status
 
-                    if Path("save.json").exists():
-                        with open("save.json", "r", encoding = "utf-8") as file2:
-                            save_dict = json.load(file2)
-                            if save_dict["dificutly"] == 'normal':
-                                level = save_dict['current_lvl']+1
-                            else: 
-                                level = 1
-                    else:
-                        level = 1
-                
-                    return n,m, our_dict, level, dificutly
+            game(board, player, dificutly, level)
 
-
-                elif command == 'hard':
-                    with open("dificutly.json", "r", encoding = "utf-8") as file:
-                        our_dict = urov_dict["hard"]
-                        dificutly = 'hard'
-                        n = randint(our_dict['board_min'], our_dict['board_max'])
-                        m = randint(our_dict['board_min'], our_dict['board_max'])
-        
-                    if Path("save.json").exists():
-                        with open("save.json", "r", encoding = "utf-8") as file2:
-                            save_dict = json.load(file2)
-                            if save_dict["dificutly"] == 'hard':
-                                level = save_dict['current_lvl']+1
-                            else: 
-                                level = 1
-                    else:
-                        level = 1
-            
-                    return n,m, our_dict, level, dificutly
-                        
+        if command == "z":
+            return dificutly_make()
                 
     else:
-        print("Выберите уровень\neasy\nnormal\nhard")
-        command = input()
-        our_dict = {}
-        with open("dificutly.json", "r", encoding = "utf-8") as file:
-            urov_dict = json.load(file)
-
-            if command == 'easy':
-                with open("dificutly.json", "r", encoding = "utf-8") as file:
-                    our_dict = urov_dict["easy"]
-                    dificutly = "easy"
-                    n = randint(our_dict['board_min'], our_dict['board_max'])
-                    m = randint(our_dict['board_min'], our_dict['board_max'])
-                if Path("save.json").exists():
-                    with open("save.json", "r", encoding = "utf-8") as file2:
-                        save_dict = json.load(file2)
-                        if save_dict["dificutly"] == 'easy':
-                            level = save_dict['current_lvl']+1
-                        else: 
-                            level = 1
-                else:
-                    level = 1
-                return n,m, our_dict, level, dificutly
-                
-            elif command == 'normal':
-                with open("dificutly.json", "r", encoding = "utf-8") as file:
-                    our_dict = urov_dict["normal"]
-                    dificutly = "normal"
-                    n = randint(our_dict['board_min'], our_dict['board_max'])
-                    m = randint(our_dict['board_min'], our_dict['board_max'])
-
-                if Path("save.json").exists():
-                    with open("save.json", "r", encoding = "utf-8") as file2:
-                        save_dict = json.load(file2)
-                        if save_dict["dificutly"] == 'normal':
-                            level = save_dict['current_lvl']+1
-                        else: 
-                            level = 1
-                else:
-                    level = 1
-                
-                return n,m, our_dict, level, dificutly
-
-
-            elif command == 'hard':
-                with open("dificutly.json", "r", encoding = "utf-8") as file:
-                    our_dict = urov_dict["hard"]
-                    dificutly = 'hard'
-                    n = randint(our_dict['board_min'], our_dict['board_max'])
-                    m = randint(our_dict['board_min'], our_dict['board_max'])
-        
-                if Path("save.json").exists():
-                    with open("save.json", "r", encoding = "utf-8") as file2:
-                        save_dict = json.load(file2)
-                        if save_dict["dificutly"] == 'hard':
-                            level = save_dict['current_lvl']+1
-                        else: 
-                            level = 1
-                else:
-                    level = 1
-            
-                return n,m, our_dict, level, dificutly
-
+        return dificutly_make()
     
-def game(board: Board, player: Player, level: int, dificutly: int) -> None:
+def use_bonuses(bonuses: dict[str, int], player: Player) -> None:
+    for bon in bonuses:
+        if bon in player.inventory:
+            print(f"{bon} - {player.inventory[bon]} thing")
+        else:
+            if bonuses[bon] != -10:
+                print(f"{bon} - {bonuses[bon]} coins")
+            else:
+                print(f"{bon} - Нельзя купить!")
+        if "Coins" in player.inventory:
+            print(f"You have {player.inventory['Coins']} coins\n")
+        else:
+            print("You have no money!\n")
+
+def command_n(player:Player, enemy: Enemy) -> None:
+    for item in player.statuses:
+        if player.statuses[item] > 0:
+            print(f"\033[1;31m{item}! {round(player.apply_status_tick(),2)}\033[0m\n")
+    if player.weapon.is_available() and not isinstance(player.weapon,Fist):
+        print(f"You attack! {round(player.attack(enemy),2)}\n")
+    else:
+        player.weapon = Fist()
+        print(f"You attack! {round(player.attack(enemy),2)}\n")
+
+def game(board: Board, player: Player, level: int, dificutly: str) -> None:
     print('Команды:\n w - вперед \n a - налево \n d - направо \n s - назад \n f - атака \n i - Посмотреть инвентарь\n x - Посмотреть оружие\n')
-    print(board.grid)
-    print(player.position)
     i=player.position[0]
     y=player.position[1]
     coors = board.grid[i][y]
@@ -1056,10 +1038,10 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
 
         if command == "y":
             player.choose_weapon(coors[0])
-            if isinstance(coors[0], Revolver):
-                player.inventory["RevAmmo"] = coors[0].ammo
-            elif isinstance(coors[0], Bow):
-                player.inventory["BowAmmo"] = coors[0].ammo    
+            # if isinstance(coors[0], Revolver):
+            #     player.inventory["RevAmmo"] = coors[0].ammo
+            # elif isinstance(coors[0], Bow):
+            #     player.inventory["BowAmmo"] = coors[0].ammo    
             coors[0] = None
         
         elif command == "x":
@@ -1134,26 +1116,22 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
             counter = 0
             print(f"\033[1;31m{coors[0]}!\033[0m\n")
             player.fight = True
+
             while player.is_alive() and coors[0].is_alive():
                 old_rage = player.rage
                 old_accuracy = player.accuracy
+
                 if isinstance(player.weapon, MeleeWeapon):
                     print("Использовать бонус? y,n\nПри n будет выполнена атака без бонуса\n" )
                     command = input()
+
                     if command == "y":
                         bonuses = {"Rage":50, "Medkit":75}
-                        for bon in bonuses:
-                            if bon in player.inventory:
-                                print(f"{bon} - {player.inventory[bon]} thing")
-                            else:
-                                 print(f"{bon} - {bonuses[bon]} coins")
-                        if "Coins" in player.inventory:
-                            print(f"You have {player.inventory['Coins']} coins\n")
-                        else:
-                            print("You have no money!\n")
+                        use_bonuses(bonuses,player)
                         print(f"medkit - m\nRage - r\n")
 
                         command = input()
+
                         if command == "m": 
                             if "Medkit" not in player.inventory:
                                 player.buy_auto_if_needed(Medkit())
@@ -1161,6 +1139,7 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
                             else:
                                 player.use_bonus(Medkit())
                                 print(f"\033[1;32m +{player.heal(Medkit().power)}!\033[0m\n")
+
                         elif command == "r":
                             if "Rage" not in player.inventory:
                                     player.buy_auto_if_needed(Rage())
@@ -1169,46 +1148,23 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
                                 player.use_bonus(Rage())
                                 print("You use Rage!")
 
-                        for item in player.statuses:
-                            if player.statuses[item] > 0:
-                                player.statuses[item] -=1
-                                print(f"\033[1;31m {item}! {round(player.apply_status_tick(),2)}\033[0m\n")
-                        if player.weapon.is_available():
-                            print(f" You attack! {round(player.attack(coors[0]),2)}\n")
-                        else:
-                            player.weapon = Fist()
-                            print(f" You attack! {round(player.attack(coors[0]),2)}\n")
+                        command_n(player, coors[0])
                         
 
                     elif command == "n":
-                        for item in player.statuses:
-                            if player.statuses[item] > 0:
-                                player.statuses[item] -=1
-                                print(f"\033[1;31m {item}! {round(player.apply_status_tick(),2)}\033[0m\n")
-                        if player.weapon.is_available():
-                            print(f"You attack! {round(player.attack(coors[0]),2)}\n")
-                        else:
-                            player.weapon = Fist()
-                            print(f"You attack! {round(player.attack(coors[0]),2)}\n")
+                        command_n(player, coors[0])
                         
                 elif isinstance(player.weapon, RangedWeapon):
                     print("Использовать бонус? y,n\n")
                     command = input()
+
                     if command == "y":
+
                         bonuses = {"Accuracy":50, "Medkit":75, "Bullets": -10, "Arrows": -10}
-                        for bon in bonuses:
-                            if bon in player.inventory:
-                                print(f"{bon} - {player.inventory[bon]} thing")
-                            else:
-                                if bonuses[bon] != -10:
-                                    print(f"{bon} - {bonuses[bon]} coins")
-                                else:
-                                    print(f"{bon} - Нельзя купить!")
-                        if "Coins" in player.inventory:
-                            print(f"You have {player.inventory['Coins']} coins\n")
-                        else:
-                            print("You have no money!\n")
-                        print(f"medkit - m\nAccuracy - ac\nBullets - b\nArrows\n")
+                        use_bonuses(bonuses,player)
+                        print(f"medkit - m\nAccuracy - ac\nBullets - b\nArrows - ar\n")
+                        command = input()
+
                         if command == "m":
                             if "Medkit" not in player.inventory:
                                 player.buy_auto_if_needed(Medkit())
@@ -1216,6 +1172,7 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
                             else:
                                 player.use_bonus(Medkit())
                                 print(f"\033[1;32m +{player.heal(Medkit().power)}!\033[0m\n")
+
                         elif command == "ac":
                             if "Accuracy" not in player.inventory:
                                     player.buy_auto_if_needed(Accuracy())
@@ -1223,53 +1180,45 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
                             else:
                                 player.use_bonus(Accuracy())
                                 print("You use Accuracy!")
+
                         elif command == "b":
-                            player.use_bonus(Bullets())
-                            print(f"\033[1;32m +{Bullets().amount}!\033[0m\n")
-                            print("You use Bullets!")
+                            if "Bullets" in player.inventory:
+                                player.use_bonus(Bullets())
+                                print(f"\033[1;32m +{Bullets().amount}!\033[0m\n")
+                                print("You use Bullets!")
+                            else:
+                                print("Yo haven't got this in inventory")
+
                         elif command == "ar":
-                            player.use_bonus(Arrows())
-                            print(f"\033[1;32m +{Arrows().amount}!\033[0m\n")
-                            print("You use Bullets!")
-                        for item in player.statuses:
-                            if player.statuses[item] > 0:
-                                player.statuses[item] -=1
-                                print(f"\033[1;31m {item}! {round(player.apply_status_tick(),2)}\033[0m\n")
-                        if player.weapon.is_available():
-                                print(f"You attack! {round(player.attack(coors[0]),2)}\n")
-                        else:
-                            player.weapon = Fist()
-                            print(f"You attack! {round(player.attack(coors[0]),2)}\n")
+                            if "Arrows" in player.inventory:
+                                player.use_bonus(Arrows())
+                                print(f"\033[1;32m +{Arrows().amount}!\033[0m\n")
+                                print("You use Arrows!")
+
+                        command_n(player, coors[0])
                     
                     elif command == "n":
-                        for item in player.statuses:
-                            if player.statuses[item] > 0:
-                                player.statuses[item] -=1
-                                print(f"\033[1;31m {item}! {round(player.apply_status_tick(),2)}\033[0m\n")
-                        if player.weapon.is_available() and not isinstance(player.weapon,Fist):
-                            print(f"You attack! {round(player.attack(coors[0]),2)}\n")
-                        else:
-                            player.weapon = Fist()
-                            print(f"You attack! {round(player.attack(coors[0]),2)}\n")
+                        command_n(player, coors[0])
                         
                 player.accuracy = old_accuracy
                 player.rage = old_rage
 
-                opa = coors[0].before_turn(player)
+                before_turn = coors[0].before_turn(player)
 
-                if opa == "Крыса убежала!":
+
+                if before_turn == "Крыса убежала!":
                     print(f"{coors[0].before_turn(player)}\n")
                     player.add_coins(coors[0].reward_coins)
                     coors[0] = None
                     break
                 
-                elif opa == player.apply_status_tick() and isinstance(coors[0], Rat):
+                elif before_turn == "Infection" and isinstance(coors[0], Rat):
                     print(f"\033[1;31m О нет! Вас инфецировали на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
-                
-                elif opa == player.apply_status_tick() and isinstance(coors[0], Spider):
+
+                elif before_turn == "Poison" and isinstance(coors[0], Spider):
                     print(f"\033[1;31m О нет! Вы отравлены на несколько ходов! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
 
-                elif isinstance(opa, Spider):
+                elif isinstance(before_turn, Spider):
                      print(f"\033[1;31m О нет! Новый паук! Damage! {round(coors[0].attack(player),2)}\033[0m\n")
                      ulala = 1
                      counter += 1
@@ -1291,7 +1240,7 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
 
             if player.hp == 0:
                 print(f"\033[1;31m FATAL! Вы проиграли!\033[0m\n")
-                if Path('save_json.py').exists():
+                if Path('save.json').exists():
                     with open('save.json', 'r', encoding = 'utf-8') as file:
                         dict_info = json.load(file)
                         dict_info['current_lvl'] = 0
@@ -1314,23 +1263,23 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
         igra_string = json.dumps(dict_igra, ensure_ascii=False)
         with open ("save.json", "w", encoding = "utf-8") as file:
             file.write(igra_string)
-        path2 = Path('record')
+        path2 = Path('record.json')
         if path2.exists():
             with open('record.json', 'r', encoding = 'utf-8') as file:
                 record_dict = json.load(file)
-                if record_dict['level'] < level:
-                    if 'Coins' in player.inventory:
-                        record_dict = {'level': level, 
-                                       'coins': player.inventory["Coins"]}
-                    else:
-                        record_dict = {'level': level, 
-                                       'coins': 0}
-                    record_string = json.dumps(record_dict)
-                    with open('record.json', 'w', encoding = 'utf-8') as file:
-                        file.write(record_string)
-                        print("New Record!")
+            if record_dict['level'] < level:
+                if 'Coins' in player.inventory:
+                    record_dict = {'level': level, 
+                                    'coins': player.inventory["Coins"]}
+                else:
+                    record_dict = {'level': level, 
+                                    'coins': 0}
+                record_string = json.dumps(record_dict)
+                with open('record.json', 'w', encoding = 'utf-8') as file:
+                    file.write(record_string)
+                print("New Record!")
                 
-                elif record_dict['level'] == level:
+            elif record_dict['level'] == level:
                     if 'Coins' in player.inventory:
                         if record_dict['coins'] < player.inventory["Coins"]:
                             record_dict = {'level': level, 
@@ -1341,7 +1290,7 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
                     record_string = json.dumps(record_dict)
                     with open('record.json', 'w', encoding = 'utf-8') as file:
                         file.write(record_string)
-                        print("New Record!")
+                    print("New Record!")
                 
         else:
             with open('record.json', 'w', encoding = 'utf-8') as file:
@@ -1353,11 +1302,11 @@ def game(board: Board, player: Player, level: int, dificutly: int) -> None:
                                     'coins': 0}
                 record_string = json.dumps(dict_record)
                 file.write(record_string)
+            print("New record!")
 
 
 if __name__ == "__main__":
-    # game(start(10,10,randint(1,10))[0], start(10,10,randint(1,10))[1])
     fun = pre_game(Board(0,0,[],0,0), Player(1, Fist(), {}, {}))
     if fun != None:
-        # game(start(fun[0], fun[1], fun[2])[0], start(fun[0], fun[1], fun[2])[1], fun[3], fun[4])
-        start(fun[0], fun[1], fun[2], fun[3], fun[4], Board(0,0,[[]],(0,0),(0,0)))
+        board1 = Board(0,0,[[]],(0,0),(0,0))
+        start(fun[0], fun[1], fun[2], fun[3], fun[4], board1)
