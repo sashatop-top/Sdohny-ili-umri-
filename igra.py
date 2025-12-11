@@ -1029,8 +1029,9 @@ def game(board: Board, player: Player, level: int, dificutly: str) -> None:
             break
 
         if command == "y":
-            player.choose_weapon(coors[0])    
-            coors[0] = None
+            if isinstance(coors[0], Weapon):
+                player.choose_weapon(coors[0])    
+                coors[0] = None
         
         elif command == "x":
             print(f'{player.weapon}\n')
@@ -1218,20 +1219,11 @@ def game(board: Board, player: Player, level: int, dificutly: str) -> None:
 
             if player.hp == 0:
                 print(f"\033[1;31mFATAL! Вы проиграли!\033[0m\n")
-                # if Path('save.json').exists():
-                #     with open('save.json', 'r', encoding = 'utf-8') as file:
-                #         dict_info = json.load(file)
-                #         dict_info['current_lvl'] = 0
-                #         string_info = json.dumps(dict_info)
-                #     with open('save.json', 'w', encoding = 'utf-8') as file:
-                #         file.write(string_info)
-                #     break
                 dict_igra = {'current_lvl': 0,
                          'dificutly': dificutly,
                          'player': player.save_player(),
                          'board': board.save_board()}
                 igra_string = json.dumps(dict_igra, ensure_ascii=False)
-                print(igra_string)
                 with open ("save.json", "w", encoding = "utf-8") as file:
                     file.write(igra_string)
                 break
