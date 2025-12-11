@@ -185,11 +185,14 @@ class Player(Entity,Damageable,Attacker):
             return bonus.apply(self)
     
     def buy_auto_if_needed(self, bonus: str) -> "Bonus":
+        counter = 0
         if self.inventory["Coins"] >= bonus.price:
             self.inventory["Coins"] -= bonus.price
             self.del_inventory()
+            print(f'You use {bonus.__str__()}')
+            counter+= 1
             return bonus.apply(self)
-        else: 
+        elif counter == 0 and self.inventory["Coins"] < bonus.price : 
             print("Не хватает денег!")
 
     def symbol(self) -> str:
@@ -402,6 +405,7 @@ class Revolver(RangedWeapon):
                 self.ammo = self.ammo - 1
                 return uron
             else:
+                self.ammo = self.ammo - 1
                 return self.max_damage
 
     def to_dict(self):
@@ -477,6 +481,7 @@ class Arrows(Bonus): # нельзя купить
         if isinstance(player.weapon,Bow):
             if player.fight == True:
                 player.weapon.ammo += self.amount
+                return self.amount
             else:
                 if self.__str__() in player.inventory:
                     player.inventory[self.__str__()] += 1
@@ -508,6 +513,7 @@ class Bullets(Bonus):
         if isinstance(player.weapon,Revolver):
             if player.fight == True:
                 player.weapon.ammo += self.amount
+                return self.amount
             else:
                 if  self.__str__() in player.inventory:
                     player.inventory[self.__str__()] += 1
@@ -756,7 +762,7 @@ class Skeleton(Enemy):
                     target.take_damage(amount)
             elif isinstance(self.weapon, MeleeWeapon):
                 if isinstance(self.weapon, Stick):
-                    self.durability = 100
+                    self.weapon.durability = 100
                 amount = self.weapon.damage()
                 if amount > self.max_damage:
                     amount = self.max_damage
@@ -845,7 +851,7 @@ def start(n,m,our_dict: dict[str:float], level: int, dificutly: str, board: Boar
                                 board.place(None, (i,y))
                                 board.grid[i][y][1] = False
 
-    game(board, Player(player_lvl, fist, {}, {'infection': 0, 'poison': 0}), level, dificutly)
+    game(board, Player(player_lvl, fist, {'Coins': 0}, {'infection': 0, 'poison': 0}), level, dificutly)
    
 def dificutly_make():
     print("Выберите уровень\n\neasy\nnormal\nhard\n")
@@ -992,7 +998,7 @@ def command_n(player:Player, enemy: Enemy) -> None:
     for item in player.statuses:
         if player.statuses[item] > 0:
             print(f"\033[1;31m{item}! {round(player.apply_status_tick(),2)}\033[0m\n")
-    if player.weapon.is_available() and not isinstance(player.weapon,Fist):
+    if player.weapon.is_available():
         print(f"\033[1mYou attack! {round(player.attack(enemy),2)}\033[0m\n")
     else:
         player.weapon = Fist()
@@ -1084,7 +1090,7 @@ def game(board: Board, player: Player, level: int, dificutly: str) -> None:
 
             
         if isinstance(coors[0], Tower):
-            print("\033[1;33m Tower!\033[0m \n")
+            print("\033[1;33mTower!\033[0m \n")
             coors[0].position = (i,y)
             coors[0].interact(board)
             board.render(player)
@@ -1092,12 +1098,12 @@ def game(board: Board, player: Player, level: int, dificutly: str) -> None:
            
         
         elif isinstance(coors[0], Bonus):
-            print(f"\033[1;32m {coors[0]}!\033[0m\n")
+            print(f"\033[1;32m{coors[0]}!\033[0m\n")
             coors[0].apply(player)
             coors[0] = None
         
         elif isinstance(coors[0], Weapon):
-            print(f"\033[1;32m {coors[0]}!\033[0m\n")
+            print(f"\033[1;32m{coors[0]}!\033[0m\n")
             print("Взять это оружие? y\nЕсли не желаете - просто идите дальше\n")
         
         elif isinstance(coors[0], Enemy):
@@ -1128,7 +1134,7 @@ def game(board: Board, player: Player, level: int, dificutly: str) -> None:
                         elif command == "r":
                             if "Rage" not in player.inventory:
                                     player.buy_auto_if_needed(Rage())
-                                    print("You use Rage!\n")
+                        
                             else:
                                 player.use_bonus(Rage())
                                 print("You use Rage!\n")
@@ -1156,24 +1162,27 @@ def game(board: Board, player: Player, level: int, dificutly: str) -> None:
                         elif command == "ac":
                             if "Accuracy" not in player.inventory:
                                     player.buy_auto_if_needed(Accuracy())
-                                    print("You use Accuracy!\n")
+        
                             else:
                                 player.use_bonus(Accuracy())
                                 print("You use Accuracy!\n")
 
-                        elif command == "b":
+                        elif command == "b" and isinstance(player.weapon, Revolver):
                             if "Bullets" in player.inventory:
                                 bulle = player.use_bonus(Bullets())
-                                print(f"\033[1;32m +{bulle}!\033[0m\n")
-                                print("You use Bullets!")
+                                print(f"\033[1m+{bulle}!\033[0m\n")
                             else:
-                                print("Yo haven't got this in inventory")
+                                print("Yo haven't got this in inventory\n")
+                        
+                        elif command == 'b' and isinstance(player.weapon, Bow) or command == 'ar' and isinstance(player.weapon, Revolver):
+                            print("It's imposible for your weapon\n")
 
-                        elif command == "ar":
+                        elif command == "ar" and isinstance(player.weapon, Bow):
                             if "Arrows" in player.inventory:
                                 arro = player.use_bonus(Arrows())
-                                print(f"\033[1;32m +{arro}!\033[0m\n")
-                                print("You use Arrows!")
+                                print(f"\033[1m+{arro}!\033[0m\n")
+                            else:
+                                print("Yo haven't got this in inventory\n")
 
                         command_n(player, coors[0])
                     
